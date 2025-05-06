@@ -1,28 +1,5 @@
-# todo - there are some todos scattered below
-#
-# the "background" page should link to the code here on github, and link to OAP, assaying anomalies, 
-# and my textbook: 9.6 (python implementatoin of assaying table 1) and 9.7 (intro use of OAP)
-#
-# 9.6 url: https://ledatascifi.github.io/ledatascifi-2025/content/05/05d_AssetPricingAnomalyTable1.html
-# 9.7 url: https://ledatascifi.github.io/ledatascifi-2025/content/05/05e_OpenAP_anomaly_plot.html
-# OAP urls: see 9.7's file (attached)
-# assaying anomalies url: see 9.6 file (attached)
-#
-# pages elsewhere should have more educational content - like, what you look for in these regression tables; whats a typical turnover for a LS portfolio; what sharpe ratio is good; what is a good alpha; what is a good t-stat; etc.
-#
-# add graph (after cumulative ret on the Model page) that compares the LS portfolio of a given model versus the LS portfolio zoo (via OAP)
-# it should be a plotly line chart with the LS portfolio of the selected model in red and the LS portfolio zoos all in grey
-# the x-axis should be the date and the y-axis should be the cumulative return (indexed to 1 at the start of the period)
-# yxais should be log scale if the max is greater than 50 
-# import openassetpricing as openap
-# openap_obj = openap.OpenAP()  
-# port_osap = openap_obj.dl_port('op', 'pandas',['IndIPO','BM']).query('port== "LS"')
-# port_osap['date'] = pd.to_datetime(port_osap['date'])
-# set port datetime to the 28th of the month like the other dataframes
-# port_osap['date'] = port_osap['date'].apply(lambda x: x.replace(day=28))  # set to 28th of month
-# port_osap = post_osap[['signalname', 'date', 'ret']]
-# 
 # later, not now: add more models (OLS, MLP) to ipynb data that feeds into this
+# I'd love to add in lazy prices!
 
 import streamlit as st
 import pandas as pd
@@ -555,7 +532,7 @@ def compare_models_page():
             return
         
         # Create tabs
-        tab1, tab2, tab3 = st.tabs(["Cumulative Returns Comparison", "Factor Analysis Comparison", "Additional Metrics"])
+        tab1, tab2, tab3 = st.tabs(["Cumulative Returns Comparison", "Risk-Adjusted Returns via Regression Analysis", "Additional Metrics"])
         
         # Tab 1: Cumulative Returns Comparison
         with tab1:
@@ -564,8 +541,13 @@ def compare_models_page():
             st.markdown("""
             This chart compares the cumulative returns of Long-Short portfolios across the selected models.
             The Long-Short strategy involves buying the highest-ranked stocks (Portfolio 5) and shorting 
-            the lowest-ranked stocks (Portfolio 1) for each model.
+            the lowest-ranked stocks (Portfolio 1) for each model. If a model has a high t-stat, then the prediction model 
+            is doing a good job of sorting stocks to buy and short compared to the factors in the regression model.
+            
+            These alphas are in percent and are monthly. To annualize, multiply by 12 (close and good enough).
             """)
+            
+
             
             fig, error_msg = create_ls_comparison_chart(returns_wide_df, selected_models)
             
@@ -581,7 +563,7 @@ def compare_models_page():
             st.markdown("""
             This table compares the alpha (excess returns) of Long-Short portfolios across different factor models. 
             
-            - The numbers are percent per month.
+            - The numbers are percent per month. Multiply by 12 to annualize.
             - Higher and statistically significant alphas indicate better model performance that cannot be explained by the risk factors in the given model.
             - The t-statistic indicates the statistical significance of the alpha, and those above 
             the 5% significance level are bolded.
@@ -666,17 +648,22 @@ def compare_models_page():
                 
                 # Display the table
                 st.write(html_table, unsafe_allow_html=True)
-                
-                st.markdown("""
+                                
+                st.markdown(r"""
                 ### Notes:
-                - r^e is the raw excess return.
-                - CAPM is the Capital Asset Pricing Model.
-                - FF# are the Fama-French #-factor models. 
-                    - FF3: Market excess of RF, SMB (Small Minus Big), HML (High Minus Low)
-                    - FF4: Adds Mom (Momentum) to FF3.
-                    - FF5: Adds RMW (Robust Minus Weak) and CMA (Conservative Minus Aggressive) to FF3.
-                    - FF6: Adds Mom to FF5.
-                                """)        
+                - Regression models:
+                    - $r^e$ is the raw excess return
+                    - CAPM is the Capital Asset Pricing, which means that we estimate a regression of the excess return of the portfolio on the market excess return:
+                        - $ret_{i,t}-r_f = \alpha + \beta_{i} \cdot mkt\_excess_t + \epsilon_{i,t}$
+                        - where $mkt\_excess_t$ is the market excess return (Mkt-RF)
+                        - and $\alpha$ is the intercept and is interpreted as the excess return of the portfolio beyond its exposure to the market
+                        - and $\beta_i$ is covariance with the market portfolio
+                    - FF# are the Fama-French #-factor models and we estimate alpha for each similarly, but with more factors in the regression:
+                        - FF3: Market, SMB (Small Minus Big), HML (High Minus Low)
+                        - FF4: FF3 + Mom (Momentum)
+                        - FF5: FF3 + RMW (Robust Minus Weak) + CMA (Conservative Minus Aggressive)
+                        - FF6: FF5 + Mom
+                """, unsafe_allow_html=True)
                 
                 ## todo - borrow/adapt attribution language from 9.6 on my site 
                         
@@ -832,6 +819,7 @@ def model_details_page():
             then the model is doing a good job of sorting stocks to buy and short.
             - We call this "Table 1" because the first table in an asset pricing paper often 
             shows this kind of analysis.
+            - Bin1 is the lowest ranked stocks from the prediction model, and Bin5 is the highest ranked stocks.
             """)
             
             table_1 = calculate_table_1(returns_wide_df, selected_model, ff_factors)
@@ -910,6 +898,23 @@ def model_details_page():
             
             # Display the table
             st.write(html_table, unsafe_allow_html=True)
+        
+            st.markdown(r"""
+            ### Notes:
+            - Regression models:
+                - $r^e$ is the raw excess return
+                - CAPM is the Capital Asset Pricing, which means that we estimate a regression of the excess return of the portfolio on the market excess return:
+                    - $ret_{i,t}-r_f = \alpha + \beta_{i} \cdot mkt\_excess_t + \epsilon_{i,t}$
+                    - where $mkt\_excess_t$ is the market excess return (Mkt-RF)
+                    - and $\alpha$ is the intercept and is interpreted as the excess return of the portfolio beyond its exposure to the market
+                    - and $\beta_i$ is covariance with the market portfolio
+                - FF# are the Fama-French #-factor models and we estimate alpha for each similarly, but with more factors in the regression:
+                    - FF3: Market, SMB (Small Minus Big), HML (High Minus Low)
+                    - FF4: FF3 + Mom (Momentum)
+                    - FF5: FF3 + RMW (Robust Minus Weak) + CMA (Conservative Minus Aggressive)
+                    - FF6: FF5 + Mom
+            """, unsafe_allow_html=True)
+        
         
         # Tab 4: Model Statistics
         with tab4:
@@ -1021,6 +1026,8 @@ def model_details_page():
             # todo lasso broken, hbgr shows nada
             
             st.header("Which variables are important in this model?")
+            
+            st.markdown("_Note: This tab is a work in progress Some models will not work._")
             
             top_n = st.slider("Top N features", 5, 50, 20, step=5)
             HAS_SHAP = False # I should try to import shap and set this to True if it works. Too tired 
