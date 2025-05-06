@@ -19,6 +19,7 @@ ydata-profiling>=4.0.0
 # Utilities
 tqdm>=4.62.0
 gdown>=4.4.0
+setuptools>=42.0.0
 
 # Dashboard
 streamlit>=1.20.0
