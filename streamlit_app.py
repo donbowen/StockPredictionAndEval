@@ -761,6 +761,9 @@ def model_details_page():
             This chart shows how $1 invested at the beginning of the period would have grown over time 
             using the long-short portfolio for the selected model, compared to returns from the many anomaly
             portfolios proposed in the finance literature.
+            
+            Details about the zoo portfolios can be found [here](https://drive.google.com/file/d/1Sev9s6cPFUGgxp1pFiej0lGzpsMqJCI2/view), and you
+            can filter the graph below to show only the zoo portfolios you are interested in.
             """)
             
             # Load zoo returns
