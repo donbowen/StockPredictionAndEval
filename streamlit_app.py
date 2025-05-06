@@ -1439,7 +1439,7 @@ def background_page():
             predictions['portfolio_assignment'] = predictions.groupby('timevar')['prediction'].transform(lambda x: port_sort(x, 2)) 
             ```
             
-            2. Then we compute the monthly portfolio returns:
+            2. Then we compute the monthly portfolio returns. You can see an example of this to the right.
             ```python
             portfolios = (predictions
                           .groupby(['yyyymm', 'portfolio_assignment'])
@@ -1450,6 +1450,13 @@ def background_page():
             ports_wide.columns = [f"Port{col}" for col in ports_wide.columns]
             ports_wide['LongShort'] = ports_wide['Port'] - ports_wide['Port']
             ```
+            
+            3. Finally, we can subject those returns to any kind of analysis we might want to apply to asset returns. 
+            The "Compare Models" and "Dig into a Model" pages do this.
+            
+            - Calculate statistics: Sharpe ratios, drawdowns, turnover, etc.
+            - Plot cumulative returns, rolling returns, etc.
+            - Compute alphas and factor loadings using regression analysis
             """)
             
         
@@ -1518,6 +1525,18 @@ def background_page():
         # Read the notebook
         with open(notebook_path, 'r', encoding='utf-8') as f:
             notebook = nbformat.read(f, as_version=4)
+        
+        st.markdown(f"## Outline of Notebook")
+        
+        # Produce an outline of ## sections in the notebook, and link to them 
+        for cell in notebook.cells:
+            if cell.cell_type == 'markdown':
+                if cell.source.startswith("## "):
+                    # Extract the subsection title and create a link
+                    subsection_title = cell.source[3:].strip()
+                    st.markdown(f"1. [{subsection_title}](#" + subsection_title.replace(" ", "_").replace('(','').replace(')','') + ")")
+        
+        st.markdown(f"---")
         
         # Display each cell of the notebook
         for i, cell in enumerate(notebook.cells):
