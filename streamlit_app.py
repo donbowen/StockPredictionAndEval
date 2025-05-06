@@ -1115,7 +1115,7 @@ import plotly.graph_objs as go
 def make_toy_data(num_months: int = 24, num_firms: int = 10, num_signals: int = 3) -> tuple:
     """Generate a (firm, month) panel with random returns and signals."""
     # Create datetime objects instead of Period objects
-    months = pd.date_range("2010-01-01", periods=num_months, freq="M")
+    months = pd.date_range("2010-01-01", periods=num_months, freq="ME")
     firms = [f"Firm {i+1}" for i in range(num_firms)]
     
     # Create returns data with slightly correlated random returns
@@ -1301,16 +1301,16 @@ def background_page():
         st.markdown("""
         Walk-forward validation mimics real-world forecasting:
         1. Only use data *up to* the current point to train a model, say May 31, 2010. (The green rows below.)
-        1. The signals below in the June 2010 were measured in May 2010. Remember, 
+        1. The signals in the June 2010 row were measured in May 2010. Remember, 
         we shifted the signals forward/down one row. So on May 31, 2010, know the values in the signal
         columns for the red row. We put those red values into our model and this is our 
         prediction for the return for the stock during and through June 2010.
         2. We store the predictions for later use.
-        3. Now slide the training window forward month by month (either use expanding or rolling windows), 
+        3. Now, slide the training window forward month by month (either use expanding or rolling windows), 
         and repeat the steps above.
         
-        So, we move the slider below, notice that the rows our model will use to predict the next 
-        month are highlighted in green, and the month we are predicting is highlighted in red.
+        So, as you move the slider below, **notice that the rows our model will use to predict the next 
+        month are highlighted in green, and the rows we are predicting is highlighted in red.**
         """)
         
         col1, col2 = st.columns(2)
@@ -1504,14 +1504,15 @@ def background_page():
         in the other pages on the site. This takes the ideas in this background section and 
         implements them on real data. Their are extra features in the code to make working with such large data easier:
         - Reducing the data size to make it easier to modify and explore
+        - Ability to train many models
         - Models only train once; when they are in the output dataset, they will not be retrained
         - More sophisticated data handling: Winsorizing and CrossSectionalImputation
-        - It's set up for NN modeling.
+        - It is set up for executing a Neural Net model (but I did not run it!)
                 
         **The notebook also shows you how to design and train models to produce your own
         predictive signals.**
         
-        Running it takes a day or so and a decent amount of RAM. For more details, we the README.md file in the repo.
+        Running it takes a day or so and a decent amount of RAM. For more details, read the [README.md file in the repo](https://github.com/donbowen/StockPredictionAndEval).
         
         ---
         """)
@@ -1529,13 +1530,16 @@ def background_page():
         st.markdown(f"## Outline of Notebook")
         
         # Produce an outline of ## sections in the notebook, and link to them 
+        lines = []
         for cell in notebook.cells:
             if cell.cell_type == 'markdown':
                 if cell.source.startswith("## "):
-                    # Extract the subsection title and create a link
+                    # Extract the section title and create a link
                     line_one = cell.source.split('\n')[0]
-                    subsection_title = line_one[3:].strip()
-                    st.markdown(f"1. [{subsection_title}](#" + subsection_title.replace(" ", "_").replace('(','').replace(')','') + ")")
+                    section_title = line_one[3:].strip()
+                    lines.append(f"1. [{section_title}](#{section_title.replace(' ', '-').replace('(','').replace(')','').lower()})")
+                    
+        st.markdown("\n".join(lines))
         
         st.markdown(f"---")
         
