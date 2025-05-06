@@ -1533,7 +1533,8 @@ def background_page():
             if cell.cell_type == 'markdown':
                 if cell.source.startswith("## "):
                     # Extract the subsection title and create a link
-                    subsection_title = cell.source[3:].strip()
+                    line_one = cell.source.split('\n')[0]
+                    subsection_title = line_one[3:].strip()
                     st.markdown(f"1. [{subsection_title}](#" + subsection_title.replace(" ", "_").replace('(','').replace(')','') + ")")
         
         st.markdown(f"---")
