@@ -363,7 +363,8 @@ def create_ls_comparison_chart(returns_wide_df, models):
     plot_df = pd.concat([row1, plot_df])
     
     # Rename columns for better readability
-    plot_df.columns = [col.split('_')[1] for col in plot_df.columns]
+    # '-'.join(columns[1].split('_')[1:-1]) : ret_hgbr_bin2 > hbgr, ret_mlp_32_16_8_bin4 > mlp-32-16-8
+    plot_df.columns = ['-'.join(col[1].split('_')[1:-1]) for col in plot_df.columns]
     
     # Set up the figure
     fig, ax = plt.subplots(figsize=(12, 6))
@@ -432,7 +433,7 @@ def calculate_multi_model_table_1(returns_wide_df, models, ff_factors):
             results.at[(model_name, 't-stat'), portfolio] = t_stat
     
     # Clean up column names for display - extract just the model name
-    results.columns = [col.split('_')[1] for col in results.columns]
+    results.columns = ['-'.join(col[1].split('_')[1:-1]) for col in results.columns]
     
     return results, None
 
@@ -497,7 +498,7 @@ def intro_page():
     # Load and display some basic statistics
     try:
         returns_wide_df, _, _ = load_data()
-        model_names = list(set([col.split('_')[1] for col in returns_wide_df.columns if 'ret_' in col]))
+        model_names = list(set([col[1].split('_')[1:-1] for col in returns_wide_df.columns if 'ret_' in col]))
         
         st.info(f"Data loaded successfully. Found {len(model_names)} models with out-of-sample performance for the period from {returns_wide_df.index.min().strftime('%Y-%m-%d')} to {returns_wide_df.index.max().strftime('%Y-%m-%d')}.")
         
@@ -518,7 +519,7 @@ def compare_models_page():
         returns_wide_df, _, _ = load_data()
         
         # Extract model names
-        model_names = list(set([col.split('_')[1] for col in returns_wide_df.columns if 'ret_' in col]))
+        model_names = list(set(['-'.join(col[1].split('_')[1:-1]) for col in returns_wide_df.columns if 'ret_' in col]))
         
         # Model selection
         selected_models = st.multiselect(
@@ -724,7 +725,7 @@ def model_details_page():
         returns_wide_df, port_stats_tall_df, _ = load_data()
         
         # Extract model names
-        model_names = list(set([col.split('_')[1] for col in returns_wide_df.columns if 'ret_' in col]))
+        model_names = list(set(['-'.join(col[1].split('_')[1:-1]) for col in returns_wide_df.columns if 'ret_' in col]))
         
         # Make the first model the Ridge model
         model_names = ['Ridge'] + sorted([m for m in model_names if m != 'Ridge'])
