@@ -364,7 +364,7 @@ def create_ls_comparison_chart(returns_wide_df, models):
     
     # Rename columns for better readability
     # '-'.join(columns[1].split('_')[1:-1]) : ret_hgbr_bin2 > hbgr, ret_mlp_32_16_8_bin4 > mlp-32-16-8
-    plot_df.columns = ['-'.join(col[1].split('_')[1:-1]) for col in plot_df.columns]
+    plot_df.columns = ['_'.join(col[1].split('_')[1:-1]) for col in plot_df.columns]
     
     # Set up the figure
     fig, ax = plt.subplots(figsize=(12, 6))
@@ -433,7 +433,7 @@ def calculate_multi_model_table_1(returns_wide_df, models, ff_factors):
             results.at[(model_name, 't-stat'), portfolio] = t_stat
     
     # Clean up column names for display - extract just the model name
-    results.columns = ['-'.join(col[1].split('_')[1:-1]) for col in results.columns]
+    results.columns = ['_'.join(col[1].split('_')[1:-1]) for col in results.columns]
     
     return results, None
 
@@ -519,7 +519,7 @@ def compare_models_page():
         returns_wide_df, _, _ = load_data()
         
         # Extract model names
-        model_names = list(set(['-'.join(col[1].split('_')[1:-1]) for col in returns_wide_df.columns if 'ret_' in col]))
+        model_names = list(set(['_'.join(col[1].split('_')[1:-1]) for col in returns_wide_df.columns if 'ret_' in col]))
         print(model_names)
         
         # Model selection
@@ -726,7 +726,7 @@ def model_details_page():
         returns_wide_df, port_stats_tall_df, _ = load_data()
         
         # Extract model names
-        model_names = list(set(['-'.join(col[1].split('_')[1:-1]) for col in returns_wide_df.columns if 'ret_' in col]))
+        model_names = list(set(['_'.join(col[1].split('_')[1:-1]) for col in returns_wide_df.columns if 'ret_' in col]))
         
         # Make the first model the Ridge model
         model_names = ['Ridge'] + sorted([m for m in model_names if m != 'Ridge'])
