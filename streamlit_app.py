@@ -520,6 +520,7 @@ def compare_models_page():
         
         # Extract model names
         model_names = list(set(['_'.join(col[1].split('_')[1:-1]) for col in returns_wide_df.columns if 'ret_' in col]))
+        f'{returns_wide_df.columns}'
         f'{model_names}'
         
         # Model selection
