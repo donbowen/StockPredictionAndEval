@@ -322,7 +322,7 @@ def calculate_table_1(returns_wide_df, selected_model, ff_factors):
     for portfolio in portfolios:
         reg_df[portfolio] = reg_df[portfolio] - reg_df['RF']  # excess returns
         for model_name, formula in factor_models.items():
-            reg = smf.ols(formula=f'{portfolio} ~ {formula}', data=reg_df).fit()
+            reg = smf.ols(formula=f'Q("{portfolio}") ~ {formula}', data=reg_df).fit()
             # extract the intercept coef and t-stat
             alpha = reg.params['Intercept']
             t_stat = reg.tvalues['Intercept']
@@ -389,6 +389,69 @@ def create_ls_comparison_chart(returns_wide_df, models):
     
     return fig, None
 
+def create_ls_comparison_chart_plotly(returns_wide_df, models):
+    """Create an interactive Plotly chart comparing Long-Short portfolios across models"""
+    
+    ls_columns = [col for col in returns_wide_df.columns if 'binLS' in col and any(model in col for model in models)]
+    
+    if not ls_columns:
+        return None, "No Long-Short portfolios found for the selected models."
+    
+    plot_df = (1 + returns_wide_df[ls_columns]).cumprod()
+    
+    # Add a month before the first date and set values to one for the first month
+    row1 = pd.DataFrame(index=[plot_df.index[0] - pd.DateOffset(months=1)], 
+                        data={c: [1] for c in plot_df.columns})
+    plot_df = pd.concat([row1, plot_df])
+    
+    # Rename columns for better readability
+    plot_df.columns = [col.split('_')[1] for col in plot_df.columns]
+    
+    # Convert to long format for Plotly Express
+    plot_df_long = plot_df.reset_index().melt(
+        id_vars='index',
+        var_name='Model',
+        value_name='Return'
+    )
+        
+    # Create the figure with Plotly Express
+    fig = px.line(
+        plot_df_long, 
+        x='index', 
+        y='Return', 
+        color='Model',
+        title='Comparison of Long-Short Portfolio Returns Across Models',
+        color_discrete_sequence=px.colors.sequential.Viridis,
+        height=600
+    )
+        
+    # Improve layout
+    fig.update_layout(
+        xaxis_title='Date',
+        yaxis_title='',
+        legend_title='Model',
+        hovermode='x unified',
+        legend=dict(
+            orientation="v",
+            yanchor="top",
+            y=0.99,
+            xanchor="left",
+            x=0.01
+        )
+    )
+        
+    # If max in the plot_df is greater than 50, log scale the y-axis
+    if plot_df.max().max() > 50:
+        fig.update_yaxes(type="log")
+        
+        # Format y-axis ticks to be more readable in log scale
+        fig.update_yaxes(
+            tickvals=[1, 2, 5, 10, 20, 50, 100, 200, 500, 1000],
+            ticktext=["1", "2", "5", "10", "20", "50", "100", "200", "500", "1000"]
+        )
+            
+    return fig, None
+
 def calculate_multi_model_table_1(returns_wide_df, models, ff_factors):
     """Calculate Table 1 regression results for multiple models' LS portfolios"""
     ls_columns = [col for col in returns_wide_df.columns if 'binLS' in col and any(model in col for model in models)]
@@ -424,7 +487,7 @@ def calculate_multi_model_table_1(returns_wide_df, models, ff_factors):
     for portfolio in ls_columns:
         reg_df[portfolio] = reg_df[portfolio] - reg_df['RF']  # excess returns
         for model_name, formula in factor_models.items():
-            reg = smf.ols(formula=f'{portfolio} ~ {formula}', data=reg_df).fit()
+            reg = smf.ols(formula=f'Q("{portfolio}") ~ {formula}', data=reg_df).fit()
             # extract the intercept coef and t-stat
             alpha = reg.params['Intercept']
             t_stat = reg.tvalues['Intercept']
@@ -549,10 +612,12 @@ def compare_models_page():
             
 
             
-            fig, error_msg = create_ls_comparison_chart(returns_wide_df, selected_models)
+            fig, error_msg = create_ls_comparison_chart_plotly(returns_wide_df, selected_models)
             
             if fig:
-                st.pyplot(fig)
+                st.plotly_chart(fig, use_container_width=True)
+
+                # st.pyplot(fig)
             else:
                 st.error(error_msg)
         
@@ -719,277 +784,279 @@ def compare_models_page():
 def model_details_page():
     st.title("Detailed Model Analysis")
     
-    try:
-        # Load data
-        returns_wide_df, port_stats_tall_df, _ = load_data()
+    # try:
+    # Load data
+    returns_wide_df, port_stats_tall_df, _ = load_data()
+    
+    # Extract model names
+    model_names = list(set([col.split('_')[1] for col in returns_wide_df.columns if 'ret_' in col]))
+    
+    # Make the first model the Ridge model
+    model_names = ['Ridge'] + sorted([m for m in model_names if m != 'Ridge'])
+    
+    # Model selection
+    selected_model = st.selectbox(
+        "Select a model to analyze:",
+        options=model_names
+    )
+    
+    # Load factors for Table 1
+    with st.spinner("Loading Fama-French factors..."):
+        ff_factors = load_factors()
+    
+    # Create tabs
+    tab1, tab8, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["Cumulative Returns", "Against the Factor Zoo", "Moving Average Returns", "Regression Analysis", 
+                                            "Model Statistics", "Turnover Patterns", "Model Pipeline", "Variable Interpretation"])
+    
+    # Tab 1: Cumulative Returns Plot
+    with tab1:
+        st.header("Cumulative Returns")
+        st.markdown("""
+        This chart shows how $1 invested at the beginning of the period would have grown over time 
+        for each portfolio formed using the selected model. The Long-Short portfolio represents the 
+        returns of buying the highest-ranked stocks (Portfolio 5) and shorting the lowest-ranked stocks (Portfolio 1).
+        """)
         
-        # Extract model names
-        model_names = list(set([col.split('_')[1] for col in returns_wide_df.columns if 'ret_' in col]))
+        cum_returns_fig = create_cumulative_returns_plot(returns_wide_df, selected_model)
+        st.pyplot(cum_returns_fig)
+    
+    with tab8:
+        st.header("Cumulative Returns vs. Anomaly Zoo")
+        st.markdown("""
+        This chart shows how $1 invested at the beginning of the period would have grown over time 
+        using the long-short portfolio for the selected model, compared to returns from the many anomaly
+        portfolios proposed in the finance literature.
         
-        # Make the first model the Ridge model
-        model_names = ['Ridge'] + sorted([m for m in model_names if m != 'Ridge'])
+        Details about the zoo portfolios can be found [here](https://drive.google.com/file/d/1Sev9s6cPFUGgxp1pFiej0lGzpsMqJCI2/view), and you
+        can filter the graph below to show only the zoo portfolios you are interested in.
+        """)
         
-        # Model selection
-        selected_model = st.selectbox(
-            "Select a model to analyze:",
-            options=model_names
+        # Load zoo returns
+        zoo_returns_df = load_zoo_returns()
+        
+        # Create a multiselect widget with "Select All" as the first option
+        zoo_input_columns = zoo_returns_df.columns[1:]  # Exclude date column
+        zoo_options = ["Select All"] + list(zoo_input_columns) # 1: to exclude date column
+        selected_zoo_returns = st.multiselect(
+            "Select zoo returns to display:", 
+            options=zoo_options, 
+            default=["Select All"],
+            key='zoo_returns'
         )
         
-        # Load factors for Table 1
-        with st.spinner("Loading Fama-French factors..."):
-            ff_factors = load_factors()
+        # Handle "Select All" option
+        if "Select All" in selected_zoo_returns:
+            zoo_returns = list(zoo_input_columns)
+        else:
+            zoo_returns = selected_zoo_returns
         
-        # Create tabs
-        tab1, tab8, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["Cumulative Returns", "Against the Factor Zoo", "Moving Average Returns", "Regression Analysis", 
-                                                "Model Statistics", "Turnover Patterns", "Model Pipeline", "Variable Interpretation"])
-        
-        # Tab 1: Cumulative Returns Plot
-        with tab1:
-            st.header("Cumulative Returns")
-            st.markdown("""
-            This chart shows how $1 invested at the beginning of the period would have grown over time 
-            for each portfolio formed using the selected model. The Long-Short portfolio represents the 
-            returns of buying the highest-ranked stocks (Portfolio 5) and shorting the lowest-ranked stocks (Portfolio 1).
-            """)
+        # If no options selected, default to all
+        if not zoo_returns:
+            zoo_returns = list(zoo_input_columns)
             
-            cum_returns_fig = create_cumulative_returns_plot(returns_wide_df, selected_model)
-            st.pyplot(cum_returns_fig)
-        
-        with tab8:
-            st.header("Cumulative Returns vs. Anomaly Zoo")
-            st.markdown("""
-            This chart shows how $1 invested at the beginning of the period would have grown over time 
-            using the long-short portfolio for the selected model, compared to returns from the many anomaly
-            portfolios proposed in the finance literature.
-            
-            Details about the zoo portfolios can be found [here](https://drive.google.com/file/d/1Sev9s6cPFUGgxp1pFiej0lGzpsMqJCI2/view), and you
-            can filter the graph below to show only the zoo portfolios you are interested in.
-            """)
-            
-            # Load zoo returns
-            zoo_returns_df = load_zoo_returns()
-            
-            # Create a multiselect widget with "Select All" as the first option
-            zoo_input_columns = zoo_returns_df.columns[1:]  # Exclude date column
-            zoo_options = ["Select All"] + list(zoo_input_columns) # 1: to exclude date column
-            selected_zoo_returns = st.multiselect(
-                "Select zoo returns to display:", 
-                options=zoo_options, 
-                default=["Select All"],
-                key='zoo_returns'
-            )
-            
-            # Handle "Select All" option
-            if "Select All" in selected_zoo_returns:
-                zoo_returns = list(zoo_input_columns)
-            else:
-                zoo_returns = selected_zoo_returns
-            
-            # If no options selected, default to all
-            if not zoo_returns:
-                zoo_returns = list(zoo_input_columns)
-                
-            zoo_returns_df = zoo_returns_df[['date'] + zoo_returns]
-                            
-            zoo_fig = plot_cumulative_returns_against_zoo(returns_wide_df, selected_model, zoo_returns_df)
-            st.plotly_chart(zoo_fig, use_container_width=True)
-        
-        # Tab 2: Moving Average Returns Plot
-        with tab2:
-            st.header("Moving Average Returns")
-            window = st.slider("Moving average window (months):", min_value=3, max_value=24, value=12, step=1)
-            st.markdown("""
-            To visualize the trend in returns over time, this chart shows the smoothed monthly returns 
-            for each portfolio formed using the selected model. 
-            To smooth monthly variation in the data, we show a moving average.
-            The are raw returns, not excess returns. Click over to the regression tab to see excess returns
-            and other risk adjustments.
-            """)
-            
-            ma_returns_fig = create_moving_average_plot(returns_wide_df, selected_model, window)
-            st.pyplot(ma_returns_fig)
-        
-        # Tab 3: Table 1 Regression Results
-        with tab3:
-            st.header("Regression Analysis (a la Table 1)")
-            st.markdown("""
-            This table shows the results of regressing portfolio returns on various factor models.
-            The alpha represents the abnormal return that cannot be explained by the factors.
-            The t-statistic indicates the statistical significance of the alpha, and those above 
-            the 5% significance level are bolded.
-            
-            - You should first look at the alpha on the Long-Short portfolio. If this has a high t-stat,
-            then the model is doing a good job of sorting stocks to buy and short.
-            - We call this "Table 1" because the first table in an asset pricing paper often 
-            shows this kind of analysis.
-            - Bin1 is the lowest ranked stocks from the prediction model, and Bin5 is the highest ranked stocks.
-            """)
-            
-            table_1 = calculate_table_1(returns_wide_df, selected_model, ff_factors)
-            table_1.rename(columns={'binLS': 'Long-Short'}, inplace=True)
-            
-            # Define custom styling function to highlight significant t-stats
-            def highlight_significant(s, threshold=1.96, color='lightgreen'):
-                """Apply highlighting to cells with t-stats above threshold"""
-                styles = pd.DataFrame('', index=s.index, columns=s.columns)
-                
-                for idx in s.index:
-                    if idx[1] == 't-stat':  # Check if the second level of MultiIndex is 't-stat'
-                        for col in s.columns:
-                            value = s.loc[idx, col]
-                            if abs(value) > threshold:
-                                styles.loc[idx, col] = f'background-color: {color}'
-                
-                return styles
-                    
-            def bold_significant(s, threshold=1.96):
-                """Apply bold font to significant t-stats"""
-                styles = pd.DataFrame('', index=s.index, columns=s.columns)
-                
-                for idx in s.index:
-                    if idx[1] == 't-stat':  # Check if the second level of MultiIndex is 't-stat'
-                        for col in s.columns:
-                            value = s.loc[idx, col]
-                            if abs(value) > threshold:
-                                styles.loc[idx, col] = 'font-weight: bold'
-                
-                return styles
-                    
-            # Apply styling
-            styled_table = (table_1.style
-                           .format("{:.3f}", subset=pd.IndexSlice[[(m, 'alpha') for m in table_1.index.levels[0]], :])
-                           .format("({:.2f})", subset=pd.IndexSlice[[(m, 't-stat') for m in table_1.index.levels[0]], :])
-                           .apply(bold_significant, axis=None))
-            
-            # Create table styling
-            table_styles = [
-                # borders 
-                dict(selector='th, thead th', props=[('text-align', 'center'), ('border-left', 'none'), ('border-right', 'none')]),
-                dict(selector='tr, th.row_heading.level1, td', props=[('border', 'none')]),
-
-                # background colors
-                dict(selector='thead th, th.row_heading.level0', props=[('background-color', '#f2f2f2')]),
-                dict(selector='td, th.row_heading.level1', props=[('background-color', '#f9f9f9')]),
-
-                # center values
-                dict(selector='td', props=[('text-align', 'center')]),
-                
-                # reduce the height of the table rows
-                dict(selector='td, tr, th.row_heading', props=[('padding-top', '1px'),('padding-bottom', '1px')]),
-                
-                # seperation between models
-                dict(selector='tr:nth-child(even)', props=[('border-bottom', '8px solid white')]),
-            ]
+        zoo_returns_df = zoo_returns_df[['date'] + zoo_returns]
                         
-            # Generate HTML with styles
-            html_table = styled_table.set_table_styles(table_styles).to_html()
-            
-            # Add custom CSS
-            st.markdown("""
-            <style>
-            table thead tr:nth-child(2) {
-                display: none;
-            }
-            
-            table {
-                width: 85%;
-                margin-bottom: 20px;
-            }        
-            
-            </style>
-            """, unsafe_allow_html=True)
-            
-            # Display the table
-            st.write(html_table, unsafe_allow_html=True)
+        zoo_fig = plot_cumulative_returns_against_zoo(returns_wide_df, selected_model, zoo_returns_df)
+        st.plotly_chart(zoo_fig, use_container_width=True)
+    
+    # Tab 2: Moving Average Returns Plot
+    with tab2:
+        st.header("Moving Average Returns")
+        window = st.slider("Moving average window (months):", min_value=3, max_value=24, value=12, step=1)
+        st.markdown("""
+        To visualize the trend in returns over time, this chart shows the smoothed monthly returns 
+        for each portfolio formed using the selected model. 
+        To smooth monthly variation in the data, we show a moving average.
+        The are raw returns, not excess returns. Click over to the regression tab to see excess returns
+        and other risk adjustments.
+        """)
         
-            st.markdown(r"""
-            ### Notes:
-            - Regression models:
-                - $r^e$ is the raw excess return
-                - CAPM is the Capital Asset Pricing, which means that we estimate a regression of the excess return of the portfolio on the market excess return:
-                    - $ret_{i,t}-r_f = \alpha + \beta_{i} \cdot mkt\_excess_t + \epsilon_{i,t}$
-                    - where $mkt\_excess_t$ is the market excess return (Mkt-RF)
-                    - and $\alpha$ is the intercept and is interpreted as the excess return of the portfolio beyond its exposure to the market
-                    - and $\beta_i$ is covariance with the market portfolio
-                - FF# are the Fama-French #-factor models and we estimate alpha for each similarly, but with more factors in the regression:
-                    - FF3: Market, SMB (Small Minus Big), HML (High Minus Low)
-                    - FF4: FF3 + Mom (Momentum)
-                    - FF5: FF3 + RMW (Robust Minus Weak) + CMA (Conservative Minus Aggressive)
-                    - FF6: FF5 + Mom
-            """, unsafe_allow_html=True)
+        ma_returns_fig = create_moving_average_plot(returns_wide_df, selected_model, window)
+        st.pyplot(ma_returns_fig)
+    
+    # Tab 3: Table 1 Regression Results
+    with tab3:
+        st.header("Regression Analysis (a la Table 1)")
+        st.markdown("""
+        This table shows the results of regressing portfolio returns on various factor models.
+        The alpha represents the abnormal return that cannot be explained by the factors.
+        The t-statistic indicates the statistical significance of the alpha, and those above 
+        the 5% significance level are bolded.
         
-        
-        # Tab 4: Model Statistics
-        with tab4:
-            st.header("Model Statistics")
+        - You should first look at the alpha on the Long-Short portfolio. If this has a high t-stat,
+        then the model is doing a good job of sorting stocks to buy and short.
+        - We call this "Table 1" because the first table in an asset pricing paper often 
+        shows this kind of analysis.
+        - Bin1 is the lowest ranked stocks from the prediction model, and Bin5 is the highest ranked stocks.
+        - The numbers are percent per month. Multiply by 12 to annualize.
+        - Higher and statistically significant alphas indicate better model performance that cannot be explained by the risk factors in the given model.
+        - The t-statistic indicates the statistical significance of the alpha, and those above the 5% significance level are bolded.
 
-            col1, col2 = st.columns(2)
+        """)
+        
+        table_1 = calculate_table_1(returns_wide_df, selected_model, ff_factors)
+        table_1.rename(columns={'binLS': 'Long-Short'}, inplace=True)
+        
+        # Define custom styling function to highlight significant t-stats
+        def highlight_significant(s, threshold=1.96, color='lightgreen'):
+            """Apply highlighting to cells with t-stats above threshold"""
+            styles = pd.DataFrame('', index=s.index, columns=s.columns)
             
-            with col1:
-                st.subheader("Sharpe Ratios")
-                sharpe_ratios = calculate_sharpe_ratios(returns_wide_df, selected_model)
-                st.dataframe(pd.DataFrame(sharpe_ratios, columns=['Sharpe Ratio']).style.format("{:.4f}"))
+            for idx in s.index:
+                if idx[1] == 't-stat':  # Check if the second level of MultiIndex is 't-stat'
+                    for col in s.columns:
+                        value = s.loc[idx, col]
+                        if abs(value) > threshold:
+                            styles.loc[idx, col] = f'background-color: {color}'
             
-            with col2:
-                st.subheader("Turnover Analysis")
+            return styles
                 
-                _, _, turnover_df = load_data()
+        def bold_significant(s, threshold=1.96):
+            """Apply bold font to significant t-stats"""
+            styles = pd.DataFrame('', index=s.index, columns=s.columns)
+            
+            for idx in s.index:
+                if idx[1] == 't-stat':  # Check if the second level of MultiIndex is 't-stat'
+                    for col in s.columns:
+                        value = s.loc[idx, col]
+                        if abs(value) > threshold:
+                            styles.loc[idx, col] = 'font-weight: bold'
+            
+            return styles
                 
-                # Filter turnover data for the selected model
-                turnover_model_df = turnover_df[turnover_df['model'] == selected_model]
-                
-                # Display turnover data
-                turnover_model_df = turnover_model_df[['bin', '% buy', '% sell', '% hold']].groupby('bin').mean()
-                turnover_model_df.columns = [c.title() for c in turnover_model_df.columns]
-                
-                st.dataframe(turnover_model_df.style.format("{:.1%}"))
+        # Apply styling
+        styled_table = (table_1.style
+                        .format("{:.3f}", subset=pd.IndexSlice[[(m, 'alpha') for m in table_1.index.levels[0]], :])
+                        .format("({:.2f})", subset=pd.IndexSlice[[(m, 't-stat') for m in table_1.index.levels[0]], :])
+                        .apply(bold_significant, axis=None))
+        
+        # Create table styling
+        table_styles = [
+            # borders 
+            dict(selector='th, thead th', props=[('text-align', 'center'), ('border-left', 'none'), ('border-right', 'none')]),
+            dict(selector='tr, th.row_heading.level1, td', props=[('border', 'none')]),
 
-        with tab5:
+            # background colors
+            dict(selector='thead th, th.row_heading.level0', props=[('background-color', '#f2f2f2')]),
+            dict(selector='td, th.row_heading.level1', props=[('background-color', '#f9f9f9')]),
+
+            # center values
+            dict(selector='td', props=[('text-align', 'center')]),
             
-            st.header("Turnover Patterns")
+            # reduce the height of the table rows
+            dict(selector='td, tr, th.row_heading', props=[('padding-top', '1px'),('padding-bottom', '1px')]),
+            
+            # seperation between models
+            dict(selector='tr:nth-child(even)', props=[('border-bottom', '8px solid white')]),
+        ]
+                    
+        # Generate HTML with styles
+        html_table = styled_table.set_table_styles(table_styles).to_html()
+        
+        # Add custom CSS
+        st.markdown("""
+        <style>
+        table thead tr:nth-child(2) {
+            display: none;
+        }
+        
+        table {
+            width: 85%;
+            margin-bottom: 20px;
+        }        
+        
+        </style>
+        """, unsafe_allow_html=True)
+        
+        # Display the table
+        st.write(html_table, unsafe_allow_html=True)
+    
+        st.markdown(r"""
+        ### Notes:
+        - Regression models:
+            - $r^e$ is the raw excess return
+            - CAPM is the Capital Asset Pricing, which means that we estimate a regression of the excess return of the portfolio on the market excess return:
+                - $ret_{i,t}-r_f = \alpha + \beta_{i} \cdot mkt\_excess_t + \epsilon_{i,t}$
+                - where $mkt\_excess_t$ is the market excess return (Mkt-RF)
+                - and $\alpha$ is the intercept and is interpreted as the excess return of the portfolio beyond its exposure to the market
+                - and $\beta_i$ is covariance with the market portfolio
+            - FF# are the Fama-French #-factor models and we estimate alpha for each similarly, but with more factors in the regression:
+                - FF3: Market, SMB (Small Minus Big), HML (High Minus Low)
+                - FF4: FF3 + Mom (Momentum)
+                - FF5: FF3 + RMW (Robust Minus Weak) + CMA (Conservative Minus Aggressive)
+                - FF6: FF5 + Mom
+        """, unsafe_allow_html=True)
+    
+    
+    # Tab 4: Model Statistics
+    with tab4:
+        st.header("Model Statistics")
+
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("Sharpe Ratios")
+            sharpe_ratios = calculate_sharpe_ratios(returns_wide_df, selected_model)
+            st.dataframe(pd.DataFrame(sharpe_ratios, columns=['Sharpe Ratio']).style.format("{:.4f}"))
+        
+        with col2:
+            st.subheader("Turnover Analysis")
             
             _, _, turnover_df = load_data()
-        
+            
             # Filter turnover data for the selected model
             turnover_model_df = turnover_df[turnover_df['model'] == selected_model]
+            
+            # Display turnover data
+            turnover_model_df = turnover_model_df[['bin', '% buy', '% sell', '% hold']].groupby('bin').mean()
+            turnover_model_df.columns = [c.title() for c in turnover_model_df.columns]
+            
+            st.dataframe(turnover_model_df.style.format("{:.1%}"))
 
-            # plot turnover_model_df variables over time 
-            fig, ax = plt.subplots(figsize=(10, 4))
-            sns.lineplot(data=turnover_model_df, x='date', y='% hold', hue='bin', ax=ax)
-            ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda y, _: '{:.0%}'.format(y)))
-            ax.set(xlabel='Date', ylabel='Hold Percentage', title='Percentage of Stocks Held Over Time')
-            ax.set_ylim(0, 1)
-            # Place legend to the right of the plot
-            ax.legend(title='Portfolio', bbox_to_anchor=(1.05, 1), loc='upper left')
-            plt.tight_layout()
-            st.pyplot(fig)
-            
-        with tab6:    
-            
-            st.header("Visualization of Model Pipeline")
-            
-            # load the model/model_name joblib pipeline
-            
-            model_path = f"models/{selected_model}.joblib"
-            try:
-                import joblib
-                pipeline = joblib.load(model_path)
-                
-                # st.write("Model pipeline loaded successfully.")
-                
-                # Display the model pipeline
-                st.write(pipeline)
-                
-            except FileNotFoundError:
-                st.error(f"Model pipeline file not found: {model_path}")
-            except Exception as e:
-                st.error(f"An error occurred while loading the model pipeline: {e}")
-                            
-            from sklearn.compose import ColumnTransformer
-            from sklearn.pipeline import Pipeline
-            from sklearn import set_config
-            import streamlit.components.v1 as components
+    with tab5:
+        
+        st.header("Turnover Patterns")
+        
+        _, _, turnover_df = load_data()
+    
+        # Filter turnover data for the selected model
+        turnover_model_df = turnover_df[turnover_df['model'] == selected_model]
 
+        # plot turnover_model_df variables over time 
+        fig, ax = plt.subplots(figsize=(10, 4))
+        sns.lineplot(data=turnover_model_df.reset_index(), x='date', y='% hold', hue='bin', ax=ax)
+        ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda y, _: '{:.0%}'.format(y)))
+        ax.set(xlabel='Date', ylabel='Hold Percentage', title='Percentage of Stocks Held Over Time')
+        ax.set_ylim(0, 1)
+        # Place legend to the right of the plot
+        ax.legend(title='Portfolio', bbox_to_anchor=(1.05, 1), loc='upper left')
+        plt.tight_layout()
+        st.pyplot(fig)
+        
+    with tab6:    
+        
+        st.header("Visualization of Model Pipeline")
+        
+        # load the model/model_name joblib pipeline
+        
+        model_path = f"models/{selected_model}.joblib"
+        pipeline = None
+        try:
+            import joblib
+            pipeline = joblib.load(model_path)
+            st.write(pipeline)
+            
+        except FileNotFoundError:
+            st.error(f"Model pipeline file not found: {model_path}")
+        except Exception as e:
+            st.error(f"An error occurred while loading the model pipeline: {e}")
+                        
+        from sklearn.compose import ColumnTransformer
+        from sklearn.pipeline import Pipeline
+        from sklearn import set_config
+        import streamlit.components.v1 as components
+
+        if pipeline:
             try:
                 html_repr = pipeline._repr_html_()
             except AttributeError:
@@ -1023,34 +1090,34 @@ def model_details_page():
                             col_df = pd.DataFrame({'Scroll to see applicable columns': columns})
                             st.dataframe(col_df, hide_index=True)
 
-
+        
+    with tab7:
+        # todo lasso broken, hbgr shows nada
+        
+        st.header("Which variables are important in this model?")
+        
+        st.markdown("_Note: This tab is a work in progress. Some models will not work._")
+        
+        top_n = st.slider("Top N features", 5, 50, 20, step=5)
+        
+        # viz_style = st.selectbox("Feature viz style", ["Horizontal bar", "SHAP"])
+        viz_style = "Horizontal bar"
+        
+        # load the model/model_name joblib pipeline
+        
+        model_path = f"models/{selected_model}.joblib"
+        
+        pipeline = None
+        try:
+            import joblib
+            pipeline = joblib.load(model_path)
+            st.write(pipeline)            
+        except FileNotFoundError:
+            st.error(f"Model pipeline file not found: {model_path}")
+        except Exception as e:
+            st.error(f"An error occurred while loading the model pipeline: {e}")
             
-        with tab7:
-            # todo lasso broken, hbgr shows nada
-            
-            st.header("Which variables are important in this model?")
-            
-            st.markdown("_Note: This tab is a work in progress Some models will not work._")
-            
-            top_n = st.slider("Top N features", 5, 50, 20, step=5)
-            HAS_SHAP = False # I should try to import shap and set this to True if it works. Too tired 
-            viz_style = st.selectbox("Feature viz style", ["Horizontal bar", "SHAP" if HAS_SHAP else "Bar chart"])
-
-            # load the model/model_name joblib pipeline
-            
-            model_path = f"models/{selected_model}.joblib"
-            try:
-                import joblib
-                pipeline = joblib.load(model_path)
-                                
-                # Display the model pipeline
-                st.write(pipeline)
-                
-            except FileNotFoundError:
-                st.error(f"Model pipeline file not found: {model_path}")
-            except Exception as e:
-                st.error(f"An error occurred while loading the model pipeline: {e}")
-                
+        if pipeline:
             # Interpretability
             estimator = pipeline.named_steps[list(pipeline.named_steps)[-1]]
             coef_attr = getattr(estimator, "coef_", None)
@@ -1061,8 +1128,11 @@ def model_details_page():
                 # get feature names from preprocessing
                 feat_names = pipeline[:-1].get_feature_names_out()
                 coefs = pd.Series(coef_attr.flatten(), index=feat_names)
-                top = pd.concat([coefs.nlargest(top_n), coefs.nsmallest(top_n)])
-
+                                
+                # sort the coefs by their absolute value 
+                coefs = coefs.sort_values(key=lambda x: x.abs(), ascending=False)
+                top = coefs.head(top_n)
+                
                 # Bar chart
                 fig3, ax3 = plt.subplots()
                 if viz_style=="Horizontal bar":
@@ -1087,10 +1157,10 @@ def model_details_page():
                     
                     # Display the plotly chart in Streamlit
                     st.plotly_chart(fig3, use_container_width=True)
-                else:
-                    top.plot.bar(ax=ax3)
-                    ax3.set_title("Coefficient magnitude")
-                    st.pyplot(fig3)
+                # else:
+                #     top.plot.bar(ax=ax3)
+                #     ax3.set_title("Coefficient magnitude")
+                #     st.pyplot(fig3)
 
             elif imp_attr is not None:
                 
@@ -1099,17 +1169,17 @@ def model_details_page():
                 imps = pd.Series(imp_attr, index=feat_names).nlargest(top_n)
                 st.bar_chart(imps)
 
-                if viz_style=="SHAP" and HAS_SHAP:
-                    st.subheader("SHAP Summary")
-                    explainer = shap.Explainer(estimator, pipeline[:-1].transform(X_val))
-                    shap_vals = explainer(pipeline[:-1].transform(X_val))
-                    fig4 = shap.plots.beeswarm(shap_vals, max_display=top_n, show=False)
-                    st.pyplot(fig4)
+            #     if viz_style=="SHAP" and HAS_SHAP:
+            #         st.subheader("SHAP Summary")
+            #         explainer = shap.Explainer(estimator, pipeline[:-1].transform(X_val))
+            #         shap_vals = explainer(pipeline[:-1].transform(X_val))
+            #         fig4 = shap.plots.beeswarm(shap_vals, max_display=top_n, show=False)
+            #         st.pyplot(fig4)
 
                     
-    except Exception as e:
-        st.error(f"An error occurred: {e}")
-        st.error("Please make sure the portfolio data files exist in the 'output_portfolios' directory.")
+    # except Exception as e:
+    #     st.error(f"An error occurred: {e}")
+    #     st.error("Please make sure the portfolio data files exist in the 'output_portfolios' directory.")
 
 # Navigation sidebar
 def sidebar_navigation():
