@@ -537,6 +537,7 @@ def intro_page():
     
     Use the sidebar to navigate between different pages:
     - **Introduction**: This overview page
+    - **Background**: Learn how models are trained, the data used, and how return predictions are turned into portfolios
     - **Compare Models**: Compare performance across multiple models
     - **Model Details**: Deep dive into a specific model
     
@@ -553,8 +554,15 @@ def intro_page():
     - [FIN377 textbook chapter on Assaying Anomalies](https://ledatascifi.github.io/ledatascifi-2025/content/05/05d_AssetPricingAnomalyTable1.html)
     - [FIN377 textbook chapter on OpenAssetPricing](https://ledatascifi.github.io/ledatascifi-2025/content/05/05e_OpenAP_anomaly_plot.html)
     
-
+    ## Going further?
     
+    - You can clone the repo and build your own models. You'll need CRSP return data.
+    - What about trading costs? ["The Expected Returns on Machine-Learning Strategies" (2024, WP)](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4702406) by Azevedo, Hoegner, and 
+    Velikov perform a similar analysis to this dashboard, and goes further to then compute how these portfolios would perform after factoring in trading costs,
+    pre-publication overfitting, and post-decimalization era of high liquidity.
+    They find that these factors erode 57% of the performance of the machine learning models. Still, they find ML strategies are portfitable and
+    have an expected gross Sharpe Ratio of 0.94, which drops to 0.84, net of expenses. For comparison, the historical average Sharpe Ratio 
+    of the S&P 500 is about 0.43.    
     """)
     
     # Load and display some basic statistics
