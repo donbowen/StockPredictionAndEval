@@ -595,7 +595,7 @@ def compare_models_page():
             return
         
         # Create tabs
-        tab1, tab2, tab3 = st.tabs(["Cumulative Returns Comparison", "Risk-Adjusted Returns via Regression Analysis", "Additional Metrics"])
+        tab1, tab2, tab3 = st.tabs(["Cumulative Returns Comparison", "Risk-Adjusted Returns via Regression Analysis", "Additional Metrics", "About the Models"])
         
         # Tab 1: Cumulative Returns Comparison
         with tab1:
@@ -616,8 +616,6 @@ def compare_models_page():
             
             if fig:
                 st.plotly_chart(fig, use_container_width=True)
-
-                # st.pyplot(fig)
             else:
                 st.error(error_msg)
         
@@ -775,6 +773,47 @@ def compare_models_page():
             # turnover_df = turnover_df.unstack(level=-1)
             
             st.dataframe(show_turnover.style.format("{:.1%}"), use_container_width=False)
+            
+        with tab4:
+            st.header("About the Models")
+            
+            st.markdown("""
+            This section provides a brief overview of the models used in this analysis.
+            
+            
+            OLS Linear Regression:
+            - Ordinary Least Squares (OLS) regression is a statistical method used to estimate the relationships between variables.
+            - It is the O.G. and the most basic linear model.
+            - It assumes a linear relationship and is easy to interpret.
+            - However, it may not capture complex relationships in the data.
+            - It is sensitive to outliers, multicollinearity, and may not perform well with high-dimensional data.
+            - It is also prone to overfitting if the number of features is large compared to the number of observations.
+            - Yet, it is a good starting point for understanding the data and establishing a baseline.
+            - And it is _good enough_ for many applications, even when FANCY PANTS models are available.
+            
+            Ridge Regression:
+            - Ridge regression is a type of linear regression that includes a regularization term to prevent overfitting.
+            - This term penalizes large coefficients, which causes the OLS coefficients to shrink towards zero.
+            - This stabilizes the predictions it makes when it sees new data and improves generalization to unseen data.
+            - It is particularly useful when dealing with multicollinearity or when the number of features gets large.
+            
+            Lasso Regression:
+            - Lasso regression is another type of linear regression that includes a regularization term.
+            - Unlike ridge regression, lasso will shrink some coefficients to zero, effectively performing variable selection.
+            - This means that it can help identify the most important features in the data. 
+            - For the purpose of prediction, Lasso and Ridge are often similar, as the underlying idea is the same: OLS, but with smaller coefficients.
+            
+            Histogram Gradient Boosting (HGB):
+            - HGB is a type of ensemble learning method that builds multiple decision trees in a sequential manner.
+            - It is particularly effective for large datasets and can model complex relationships that are non-linear (e.g., interactions between features or non-linear relationships).
+            
+            MLP (Multi-Layer Perceptron) aka Neural Network:
+            - MLP is a type of neural network that consists of multiple layers of interconnected nodes (neurons).
+            
+            
+            
+            
+            """)
                 
     except Exception as e:
         st.error(f"An error occurred: {e}")
