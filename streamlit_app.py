@@ -595,7 +595,7 @@ def compare_models_page():
             return
         
         # Create tabs
-        tab1, tab2, tab3 = st.tabs(["Cumulative Returns Comparison", "Risk-Adjusted Returns via Regression Analysis", "Additional Metrics", "About the Models"])
+        tab1, tab2, tab3, tab4 = st.tabs(["Cumulative Returns Comparison", "Risk-Adjusted Returns via Regression Analysis", "Additional Metrics", "About the Models"])
         
         # Tab 1: Cumulative Returns Comparison
         with tab1:
@@ -809,10 +809,11 @@ def compare_models_page():
             
             MLP (Multi-Layer Perceptron) aka Neural Network:
             - MLP is a type of neural network that consists of multiple layers of interconnected nodes (neurons).
+            - A punchy one-liner is that it is a "black box" model that can learn complex relationships in the data.
+            - NNs are powerful and flexible, but they require careful tuning of hyperparameters and can be prone to overfitting.
+            - Some projects have found them to work well in finance, for example, [Gu, Kelly & Xiu (RFS 2020)](https://academic.oup.com/rfs/article/33/5/2223/5758276/) and [OpenAssetPricing](https://github.com/mk0417/open-asset-pricing-download/blob/master/examples/ML_portfolio_example.ipynb).
             
-            
-            
-            
+    
             """)
                 
     except Exception as e:
