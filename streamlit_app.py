@@ -1125,8 +1125,8 @@ def model_details_page():
             else:
                 components.html(
                     html_repr,
-                    width=1000,
-                    height=500,     # adjust as needed
+                    # width=1000,
+                    # height=500,     # adjust as needed
                     scrolling=True
                 )
                 
