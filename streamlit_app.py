@@ -1105,7 +1105,7 @@ def model_details_page():
         try:
             import joblib
             pipeline = joblib.load(model_path)
-            st.write(pipeline)
+            # st.write(pipeline)
             
         except FileNotFoundError:
             st.error(f"Model pipeline file not found: {model_path}")
@@ -1172,7 +1172,7 @@ def model_details_page():
         try:
             import joblib
             pipeline = joblib.load(model_path)
-            st.write(pipeline)            
+            # st.write(pipeline)            
         except FileNotFoundError:
             st.error(f"Model pipeline file not found: {model_path}")
         except Exception as e:
