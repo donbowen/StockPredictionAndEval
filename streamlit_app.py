@@ -549,6 +549,7 @@ def intro_page():
     
     - [Neural Network Dashboard](https://lehigh-asset-pricing.streamlit.app/) by Joseph Carruth, Jay Geneve, Michael Jamesley, and Evan Trock
     - [Lazy Prices Replication](https://lazypricesreplication.streamlit.app/) by Hannah Gordon, Akanksha Gavade, Marti Figueres, and Henry Piotrowski
+    - [Lazy Prices Replication](https://github.com/ank225git/lazy-prices_replication/blob/main/output/report.ipynb) by Anastasiia Kozlova and Chris Luo
     - [OpenAssetPricing](www.openassetpricing.com) by Andrew Chen and Tom Zimmermann
     - [Assaying Anomalies](https://sites.psu.edu/assayinganomalies/) by Robert Novy-Marx  and Mihail Velikov
     - [FIN377 textbook chapter on Assaying Anomalies](https://ledatascifi.github.io/ledatascifi-2025/content/05/05d_AssetPricingAnomalyTable1.html)
