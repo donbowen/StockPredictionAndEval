@@ -1123,10 +1123,13 @@ def model_details_page():
             except AttributeError:
                 print('Problem rendering pipeline.')
             else:
+                # get the height of the html_repr 
+                height = len(html_repr.split('\n')) * 20
+                
                 components.html(
                     html_repr,
                     # width=1000,
-                    # height=500,     # adjust as needed
+                    height=height,     # adjust as needed
                     scrolling=True
                 )
                 
