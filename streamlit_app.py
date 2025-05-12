@@ -561,8 +561,7 @@ def intro_page():
     The Role of Feature Engineering" (2025, Journal of Financial Economics)](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5248179) by Li, Rossi, (Lehigh's own) 
     Sterlin Yan, and Zheng, compare the performance of (A) a ML model based on 18,000 possible accounting variables to (B) a ML model using 
     the smaller set of 200 predictive signals used 
-    in this dashboard (which are curated from finance research by Chen and Zimmerman's OpenAssetPricing). They find that using the     
-    the SMALLER but selected set of signals performs better! Students can replicate this exercise
+    in this dashboard (which are curated from finance research by Chen and Zimmerman's OpenAssetPricing). They find that using the SMALLER but selected set of signals performs better! Students can replicate this exercise
     by obtaining accounting data from WRDS, creating the features, and then running code within this project with the input signal data replaced.
     - The predictive signals used here are curated from finance research but might 
     be overfit to the past and underperform going forward.
