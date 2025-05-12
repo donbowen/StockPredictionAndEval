@@ -557,12 +557,22 @@ def intro_page():
     ## Going further?
     
     - You can clone the repo and build your own models. You'll need CRSP return data.
+    - What about the role of feature engineering?  ["Machine Learning from a "Universe" of Signals: 
+    The Role of Feature Engineering" (2025, Journal of Financial Economics)](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5248179) by Li, Rossi, (Lehigh's own) 
+    Sterlin Yan, and Zheng, compare the performance of (A) a ML model based on 18,000 possible accounting variables to (B) a ML model using 
+    the smaller set of 200 predictive signals used 
+    in this dashboard (which are curated from finance research by Chen and Zimmerman's OpenAssetPricing). They find that using the     
+    the SMALLER but selected set of signals performs better! Students can replicate this exercise
+    by obtaining accounting data from WRDS, creating the features, and then running code within this project with the input signal data replaced.
+    - The predictive signals used here are curated from finance research but might 
+    be overfit to the past and underperform going forward.
     - What about trading costs? ["The Expected Returns on Machine-Learning Strategies" (2024, WP)](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4702406) by Azevedo, Hoegner, and 
     Velikov perform a similar analysis to this dashboard, and goes further to then compute how these portfolios would perform after factoring in trading costs,
     pre-publication overfitting, and post-decimalization era of high liquidity.
     They find that these factors erode 57% of the performance of the machine learning models. Still, they find ML strategies are portfitable and
     have an expected gross Sharpe Ratio of 0.94, which drops to 0.84, net of expenses. For comparison, the historical average Sharpe Ratio 
     of the S&P 500 is about 0.43.    
+    Students could add calculations to this dashboard to estimate the impact of trading costs on the portfolios.
     """)
     
     # Load and display some basic statistics
