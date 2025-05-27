@@ -1364,8 +1364,8 @@ def background_page():
     tab0, tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
         '(1) Overview',
         '(2) Returns Data', 
-        '(3) Signals Data', ,
-        '(4) Combine Return and Signals Data'
+        '(3) Signals Data', 
+        '(4) Combine Return and Signals Data',
         '(5) Training Timeline',
         '(6) Portfolio Construction',
         '(7) Full Code Example'
