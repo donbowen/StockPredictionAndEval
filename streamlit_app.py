@@ -1361,14 +1361,46 @@ def background_page():
     toy_rets, toy_signals, combined_toy_df = prepare_combined_data(num_firms=num_firms)
     
     # Create tabs
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-        '(1) Returns Data', 
-        '(2) Signals Data', 
-        '(3) Combine Them',
-        '(4) Training Timeline',
-        '(5) Portfolio Construction',
-        '(6) Full Code Example'
+    tab0, tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+        '(1) Overview',
+        '(2) Returns Data', 
+        '(3) Signals Data', ,
+        '(4) Combine Return and Signals Data'
+        '(5) Training Timeline',
+        '(6) Portfolio Construction',
+        '(7) Full Code Example'
     ])
+    
+    with tab0:
+        st.subheader("Overview")
+        st.markdown("""
+        This page provides an overview behind the steps of training and evaluating how stock return prediction models.
+        
+        We will walk through the two main data sources--stock returns and predictive signals--and how to combine them,
+        along with the steps to train models over time to get an accurate view of how the models would perform in practice.
+        
+        The basic ideas are:
+        1. For firm $i$ in month $t$, we have a return $r_{i,t}$ and a set of "signals" $s_{i,t-1}$ measured in the previous month. 
+        2. We can use these signals to predict the return in the current month, $r_{i,t}$. We will consider any functional model 
+           $r_{i,t}=f(s_{i,t-1})$ that takes the signals as input and outputs a prediction of the return.
+           - Before estimating the model, we can modify the signals to improve the model's performance, for example, by taking the 
+             log of a signal or scaling it. There are many things to try: cleaning data, feature creation/engineering, feature selection.
+           - Estimators for the function include: OLS, Ridge, Lasso, Gradient Boosting, Neural Networks, etc. This dashboard tries many of them.
+        3. Given the predicted returns in a given month, we sort the firms into portfolios (e.g., Low, Middle, High) based on the predicted returns,
+           and we determine the returns of each portfolio.
+        4. We compute the "long-short" portfolio returns that month, which is simply the return of the High portfolio minus the return of the Low portfolio. 
+           - In practice, this portfolio is what you would get if, at the beginning of the month, you: (1) Buy (or go "long") an equal amount of all the stocks in your High portfolio,
+           and (2) short an equal amount of all the stocks in your Low portfolio.  
+           - This portfolio is a bet that the High portfolio will outperform the Low portfolio.
+           - This portfolio is zero-cost, meaning that you do not need to put up any capital to invest in it, because shorting all the stocks
+           in the Low portfolio generates enough cash to buy the stocks in the High portfolio. 
+        5. We repeat this over time, month by month, to get a time series of returns for the long-short portfolio.
+        6. We then evaluate the performance of the long-short portfolio, for example, by looking at its excess returns, alphas, 
+        Sharpe ratios, and other measures. 
+           
+        
+        
+        """)
     
     with tab1:
         st.subheader("Returns Data")
@@ -1391,13 +1423,13 @@ def background_page():
     with tab2:
         st.subheader("Data on Signals: Predictive Features")
         st.markdown("""
-        The second step is to obtain stock signals, which are potential predictors of future returns.
+        The second step is to obtain stock "signals", which are potential predictors of future returns.
         
         Pre-computed signals are available from [OpenAssetPricing](www.openassetpricing.com). 
-        You can make your own signals as well, but this is outside the scope of this demo.
+        You can make your own signals as well, which can be very valuable, but this is outside the scope of this demo.
         
-        Signals are features about the firm or economy measured during the month:
-        - **Important Note**: Signals can only be used to predict *next month's* returns
+        Signals are features about the firm or economy measured during a given month:
+        - **Important Note**: Signals can only be used to predict future returns, not the same month the signal is measured 
         - Each signal represents a different potential predictor of stock performance
         """)
         st.dataframe(toy_signals)
@@ -1419,7 +1451,7 @@ def background_page():
         
         This setup allows us to predict next month's returns using current month's signals.
         
-        The code for this is _like_:
+        The code to get to this combination of the data sources with the lagged signals is _like_:
         ```python
         lag_signals = signals.copy()
         lag_signals["yyyymm"] = lag_signals.groupby("firm_id")["yyyymm"].shift(-1) # groupby is important
@@ -1442,12 +1474,13 @@ def background_page():
         st.subheader("Walk-Forward Validation: How Models Learn")
         st.markdown("""
         Walk-forward validation mimics real-world forecasting:
-        1. Only use data *up to* the current point to train a model, say May 31, 2010. (The green rows below.)
-        1. The signals in the June 2010 row were measured in May 2010. Remember, 
-        we shifted the signals forward/down one row. So on May 31, 2010, know the values in the signal
+        1. Train a model using only data *up to* the current point, say May 31, 2010 (the green rows below). 
+        1. Predict returns for the next month, June 2010, which is the red row below. Remember, the signals
+        in the June 2010 row were measured in May 2010 because 
+        we shifted the signals forward/down one row. So on May 31, 2010, we know the values in the signal
         columns for the red row. We put those red values into our model and this is our 
         prediction for the return for the stock during and through June 2010.
-        2. We store the predictions for later use.
+        2. We store the predicted returns for later use.
         3. Now, slide the training window forward month by month (either use expanding or rolling windows), 
         and repeat the steps above.
         
@@ -1566,10 +1599,13 @@ def background_page():
         
         with col1:
         
-            st.subheader("Portfolio Construction: From Predictions to Positions")
+            st.subheader("Portfolio Construction: From Predictions to Portfolio Positions")
             
             st.markdown("""
-            After the last step, we have a dataset with predictions for the next month.
+            After the last step, we have a dataset with return predictions for the next month as though we had done them in real time.
+            
+            We will now use these predictions to construct portfolios where we rank stocks into bins based on how high we think their returns will be next month.
+            It is most common to sort stocks into 5 or 10 bins, but you can use any number of bins you like. In this example, we will sort into 2 portfolios.
                                 
             Next, we:
             1. Sort stocks by predicted return each month. In the example, we sort into 2 portfolios. The output of this is to the right.
@@ -1581,7 +1617,9 @@ def background_page():
             predictions['portfolio_assignment'] = predictions.groupby('timevar')['prediction'].transform(lambda x: port_sort(x, 2)) 
             ```
             
-            2. Then we compute the monthly portfolio returns. You can see an example of this to the right.
+            2. Then we compute the monthly portfolio returns. You can see an example of this to the right. Notice that we also compute the 
+            long minus short portfolio, which is the difference between the returns of the highest and lowest ranked portfolios.
+            
             ```python
             portfolios = (predictions
                           .groupby(['yyyymm', 'portfolio_assignment'])
@@ -1593,7 +1631,7 @@ def background_page():
             ports_wide['LongShort'] = ports_wide['Port'] - ports_wide['Port']
             ```
             
-            3. Finally, we can subject those returns to any kind of analysis we might want to apply to asset returns. 
+            3. Finally, we can subject those returns (focusing on the long-short portfolio) to any kind of analysis we might want to apply to asset returns. 
             The "Compare Models" and "Dig into a Model" pages do this.
             
             - Calculate statistics: Sharpe ratios, drawdowns, turnover, etc.
