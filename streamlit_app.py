@@ -1374,9 +1374,12 @@ def background_page():
     with tab0:
         st.subheader("Overview")
         st.markdown("""
-        This page provides an overview behind the steps of training and evaluating how stock return prediction models.
+        This page provides an walkthrough of the steps of behind training and evaluating stock return prediction models. 
         
-        We will walk through the two main data sources--stock returns and predictive signals--and how to combine them,
+        Rather than evaluating how a model performs by looking at a summary stat from the model (like R-squared, MAE, etc.), we 
+        evaluate how a model performs by looking at the returns you can achieve by trading on its predictions.
+        
+        In the other tabs on this page, we walk through the two main data sources--stock returns and predictive signals--and how to combine them,
         along with the steps to train models over time to get an accurate view of how the models would perform in practice.
         
         The basic ideas are:
