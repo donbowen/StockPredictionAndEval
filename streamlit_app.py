@@ -93,6 +93,30 @@ class Winsorizer(BaseEstimator, TransformerMixin):
         return input_features if input_features is not None else []
 
 
+def _ensure_sklearn_joblib_compatibility():
+    import sys
+    from sklearn.compose import _column_transformer
+
+    main_module = sys.modules.get("__main__")
+    if main_module is not None:
+        main_module.CrossSectionalMeanImputer = CrossSectionalMeanImputer
+        main_module.Winsorizer = Winsorizer
+
+    if not hasattr(_column_transformer, "_RemainderColsList"):
+        class _RemainderColsList(list):
+            pass
+
+        _column_transformer._RemainderColsList = _RemainderColsList
+
+
+def load_model_pipeline(model_path):
+    _ensure_sklearn_joblib_compatibility()
+
+    import joblib
+
+    return joblib.load(model_path)
+
+
 
 # Set page configuration
 st.set_page_config(
@@ -1102,8 +1126,7 @@ def model_details_page():
         model_path = f"models/{selected_model}.joblib"
         pipeline = None
         try:
-            import joblib
-            pipeline = joblib.load(model_path)
+            pipeline = load_model_pipeline(model_path)
             # st.write(pipeline)
             
         except FileNotFoundError:
@@ -1170,8 +1193,7 @@ def model_details_page():
         
         pipeline = None
         try:
-            import joblib
-            pipeline = joblib.load(model_path)
+            pipeline = load_model_pipeline(model_path)
             # st.write(pipeline)            
         except FileNotFoundError:
             st.error(f"Model pipeline file not found: {model_path}")
