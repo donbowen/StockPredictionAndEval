@@ -14,20 +14,14 @@ class LoadModelPipelineTests(unittest.TestCase):
     def test_all_shipped_models_load_with_compatibility_shims(self):
         model_paths = sorted(MODELS_DIR.glob("*.joblib"))
 
-        self.assertTrue(model_paths, "Expected bundled model files for compatibility coverage")
+        self.assertGreater(len(model_paths), 0, "Expected bundled model files for compatibility coverage")
 
-        failures = []
         for model_path in model_paths:
-            try:
+            with self.subTest(model=model_path.name):
                 pipeline = load_model_pipeline(model_path)
-            except Exception as exc:  # pragma: no cover - exercised only on failure
-                failures.append(f"{model_path.name}: {type(exc).__name__}: {exc}")
-                continue
 
-            self.assertIsInstance(pipeline, Pipeline, model_path.name)
-            self.assertTrue(pipeline.named_steps, model_path.name)
-
-        self.assertEqual([], failures, "\n".join(failures))
+                self.assertIsInstance(pipeline, Pipeline, model_path.name)
+                self.assertGreater(len(pipeline.named_steps), 0, model_path.name)
 
 
 if __name__ == "__main__":
