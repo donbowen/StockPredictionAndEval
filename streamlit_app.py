@@ -124,6 +124,87 @@ def load_model_pipeline(model_path):
     return joblib.load(model_path)
 
 
+def _get_mlp_feature_importances(estimator, feature_names):
+    """Estimate MLP feature importance by propagating absolute weights to the output layer."""
+
+    if not hasattr(estimator, "coefs_") or not estimator.coefs_:
+        return None
+
+    downstream = np.ones(estimator.coefs_[-1].shape[1])
+    for weights in reversed(estimator.coefs_):
+        downstream = np.abs(np.asarray(weights)) @ downstream
+
+    return pd.Series(downstream, index=feature_names)
+
+
+def _get_hist_gradient_boosting_feature_importances(estimator, feature_names):
+    """Estimate HGBR feature importance from cumulative split gain across all trees."""
+
+    predictors = getattr(estimator, "_predictors", None)
+    if predictors is None:
+        return None
+
+    importances = np.zeros(len(feature_names), dtype=float)
+
+    for iteration_predictors in predictors:
+        for predictor in iteration_predictors:
+            nodes = predictor.nodes
+            split_mask = nodes["is_leaf"] == 0
+            feature_idx = nodes["feature_idx"][split_mask]
+            valid_mask = (feature_idx >= 0) & (feature_idx < len(feature_names))
+            np.add.at(importances, feature_idx[valid_mask], nodes["gain"][split_mask][valid_mask])
+
+    return pd.Series(importances, index=feature_names)
+
+
+def get_feature_importance_details(estimator, feature_names):
+    """Return feature importance details for supported model types."""
+
+    coef_attr = getattr(estimator, "coef_", None)
+    if coef_attr is not None:
+        return {
+            "subheader": "🔢 Top Coefficients",
+            "x_label": "Coefficient Value",
+            "title": "Coefficient Magnitude",
+            "series": pd.Series(np.asarray(coef_attr).ravel(), index=feature_names),
+            "sort_by_absolute_value": True,
+            "caption": None,
+        }
+
+    imp_attr = getattr(estimator, "feature_importances_", None)
+    if imp_attr is not None:
+        return {
+            "subheader": "🌳 Feature Importances",
+            "x_label": "Importance",
+            "title": "Feature Importance",
+            "series": pd.Series(imp_attr, index=feature_names),
+            "sort_by_absolute_value": False,
+            "caption": None,
+        }
+
+    if estimator.__class__.__name__ == "MLPRegressor":
+        return {
+            "subheader": "🧠 Estimated Neural Network Importances",
+            "x_label": "Estimated Importance",
+            "title": "Estimated Neural Network Importance",
+            "series": _get_mlp_feature_importances(estimator, feature_names),
+            "sort_by_absolute_value": False,
+            "caption": "Estimated by propagating each feature's absolute learned weights through the network.",
+        }
+
+    if estimator.__class__.__name__ == "HistGradientBoostingRegressor":
+        return {
+            "subheader": "🌳 Estimated Gradient Boosting Importances",
+            "x_label": "Cumulative Split Gain",
+            "title": "Estimated Gradient Boosting Importance",
+            "series": _get_hist_gradient_boosting_feature_importances(estimator, feature_names),
+            "sort_by_absolute_value": False,
+            "caption": "Estimated from cumulative split gain across the fitted boosting trees.",
+        }
+
+    return None
+
+
 
 # Set page configuration
 st.set_page_config(
@@ -159,16 +240,22 @@ def load_factors():
     """Load Fama-French factors for regression analysis"""
     start = '1964-01-01'
     start_date = datetime.strptime(start, '%Y-%m-%d')
-    
-    # Get FF5 and momentum
-    ff_5 = pdr.get_data_famafrench('F-F_Research_Data_5_Factors_2x3', start=start_date)[0]
-    ff_mom = pdr.get_data_famafrench('F-F_Momentum_Factor', start=start_date)[0]
-    ff_mom.columns = ['Mom']  # rename
-    
-    # combine
-    ff_factors = pd.merge(ff_5, ff_mom, left_index=True, right_index=True, how='outer')
-    ff_factors = ff_factors.reset_index().rename(columns={"Mkt-RF": "mkt_excess", "Date": "date"})
-    ff_factors["date"] = ff_factors["date"].dt.to_timestamp()
+
+    try:
+        # Get FF5 and momentum
+        ff_5 = pdr.get_data_famafrench('F-F_Research_Data_5_Factors_2x3', start=start_date)[0]
+        ff_mom = pdr.get_data_famafrench('F-F_Momentum_Factor', start=start_date)[0]
+        ff_mom.columns = ['Mom']  # rename
+
+        # combine
+        ff_factors = pd.merge(ff_5, ff_mom, left_index=True, right_index=True, how='outer')
+        ff_factors = ff_factors.reset_index().rename(columns={"Mkt-RF": "mkt_excess", "Date": "date"})
+        ff_factors["date"] = ff_factors["date"].dt.to_timestamp()
+    except Exception:
+        ff_factors = pd.read_csv("input_data/ff_factors.csv")
+        ff_factors["date"] = pd.to_datetime(ff_factors["date"])
+        ff_factors = ff_factors.drop(columns=["_merge"], errors="ignore")
+
     ff_factors["date"] = ff_factors["date"].apply(lambda x: x.replace(day=28))  # set to 28th of month
     ff_factors = ff_factors.set_index('date')
     
@@ -1183,88 +1270,56 @@ def model_details_page():
 
         
     with tab7:
-        # todo lasso broken, hbgr shows nada
-        
         st.header("Which variables are important in this model?")
-        
-        st.markdown("_Note: This tab is a work in progress. Some models will not work._")
-        
+
         top_n = st.slider("Top N features", 5, 50, 20, step=5)
-        
-        # viz_style = st.selectbox("Feature viz style", ["Horizontal bar", "SHAP"])
-        viz_style = "Horizontal bar"
-        
-        # load the model/model_name joblib pipeline
-        
+
         model_path = f"models/{selected_model}.joblib"
-        
         pipeline = None
         try:
             pipeline = load_model_pipeline(model_path)
-            # st.write(pipeline)            
         except FileNotFoundError:
             st.error(f"Model pipeline file not found: {model_path}")
         except Exception as e:
             st.error(f"An error occurred while loading the model pipeline: {e}")
             
         if pipeline:
-            # Interpretability
             estimator = pipeline.named_steps[list(pipeline.named_steps)[-1]]
-            coef_attr = getattr(estimator, "coef_", None)
-            imp_attr  = getattr(estimator, "feature_importances_", None)
+            feat_names = pipeline[:-1].get_feature_names_out()
+            importance_details = get_feature_importance_details(estimator, feat_names)
 
-            if coef_attr is not None:
-                st.subheader("🔢 Top Coefficients")
-                # get feature names from preprocessing
-                feat_names = pipeline[:-1].get_feature_names_out()
-                coefs = pd.Series(coef_attr.flatten(), index=feat_names)
-                                
-                # sort the coefs by their absolute value 
-                coefs = coefs.sort_values(key=lambda x: x.abs(), ascending=False)
-                top = coefs.head(top_n)
-                
-                # Bar chart
-                fig3, ax3 = plt.subplots()
-                if viz_style=="Horizontal bar":
-                    import plotly.express as px
-                    
-                    # Create Plotly horizontal bar chart
-                    fig3 = px.bar(
-                        x=top.values,
-                        y=top.index,
-                        orientation='h',
-                        labels={'x': 'Coefficient Value', 'y': 'Feature'},
-                        title="Coefficient Magnitude",
-                        height=max(400, len(top)*25)  # Dynamic height based on number of features
-                    )
-                    
-                    # Improve layout for readability
-                    fig3.update_layout(
-                        yaxis={'categoryorder': 'total ascending'},  # Sort bars
-                        hoverlabel=dict(bgcolor="white", font_size=12),
-                        margin=dict(l=20, r=20, t=40, b=20)
-                    )
-                    
-                    # Display the plotly chart in Streamlit
-                    st.plotly_chart(fig3, use_container_width=True)
-                # else:
-                #     top.plot.bar(ax=ax3)
-                #     ax3.set_title("Coefficient magnitude")
-                #     st.pyplot(fig3)
+            if importance_details is None or importance_details["series"] is None:
+                st.info("This model does not expose feature importances in a way the dashboard can display.")
+            else:
+                st.subheader(importance_details["subheader"])
 
-            elif imp_attr is not None:
-                
-                st.subheader("🌳 Feature Importances")
-                feat_names = pipeline[:-1].get_feature_names_out()
-                imps = pd.Series(imp_attr, index=feat_names).nlargest(top_n)
-                st.bar_chart(imps)
+                importance_series = importance_details["series"]
+                if importance_details["sort_by_absolute_value"]:
+                    importance_series = importance_series.sort_values(key=lambda x: x.abs(), ascending=False)
+                else:
+                    importance_series = importance_series.sort_values(ascending=False)
 
-            #     if viz_style=="SHAP" and HAS_SHAP:
-            #         st.subheader("SHAP Summary")
-            #         explainer = shap.Explainer(estimator, pipeline[:-1].transform(X_val))
-            #         shap_vals = explainer(pipeline[:-1].transform(X_val))
-            #         fig4 = shap.plots.beeswarm(shap_vals, max_display=top_n, show=False)
-            #         st.pyplot(fig4)
+                top = importance_series.head(top_n)
+
+                fig3 = px.bar(
+                    x=top.values,
+                    y=top.index,
+                    orientation='h',
+                    labels={'x': importance_details["x_label"], 'y': 'Feature'},
+                    title=importance_details["title"],
+                    height=max(400, len(top)*25)
+                )
+
+                fig3.update_layout(
+                    yaxis={'categoryorder': 'total ascending'},
+                    hoverlabel=dict(bgcolor="white", font_size=12),
+                    margin=dict(l=20, r=20, t=40, b=20)
+                )
+
+                st.plotly_chart(fig3, use_container_width=True)
+
+                if importance_details["caption"]:
+                    st.caption(importance_details["caption"])
 
                     
     # except Exception as e:
