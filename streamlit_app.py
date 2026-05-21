@@ -93,20 +93,23 @@ class Winsorizer(BaseEstimator, TransformerMixin):
         return input_features if input_features is not None else []
 
 
+class _CompatRemainderColsList(list):
+    """Compatibility shim for sklearn versions that removed _RemainderColsList."""
+
+
 def _ensure_sklearn_joblib_compatibility():
     import sys
     from sklearn.compose import _column_transformer
 
     main_module = sys.modules.get("__main__")
     if main_module is not None:
-        main_module.CrossSectionalMeanImputer = CrossSectionalMeanImputer
-        main_module.Winsorizer = Winsorizer
+        if not hasattr(main_module, "CrossSectionalMeanImputer"):
+            main_module.CrossSectionalMeanImputer = CrossSectionalMeanImputer
+        if not hasattr(main_module, "Winsorizer"):
+            main_module.Winsorizer = Winsorizer
 
     if not hasattr(_column_transformer, "_RemainderColsList"):
-        class _RemainderColsList(list):
-            pass
-
-        _column_transformer._RemainderColsList = _RemainderColsList
+        _column_transformer._RemainderColsList = _CompatRemainderColsList
 
 
 def load_model_pipeline(model_path):
