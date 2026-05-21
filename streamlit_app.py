@@ -94,10 +94,12 @@ class Winsorizer(BaseEstimator, TransformerMixin):
 
 
 class _CompatRemainderColsList(list):
-    """Compatibility shim for sklearn versions that removed _RemainderColsList."""
+    """Fallback for loading sklearn<=1.6 ColumnTransformer pickles in sklearn>=1.8."""
 
 
 def _ensure_sklearn_joblib_compatibility():
+    """Register compatibility shims needed to unpickle the shipped sklearn pipelines."""
+
     import sys
     from sklearn.compose import _column_transformer
 
@@ -113,6 +115,8 @@ def _ensure_sklearn_joblib_compatibility():
 
 
 def load_model_pipeline(model_path):
+    """Load a saved model pipeline after applying sklearn/joblib compatibility shims."""
+
     _ensure_sklearn_joblib_compatibility()
 
     import joblib
