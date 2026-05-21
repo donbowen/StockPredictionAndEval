@@ -93,6 +93,37 @@ class Winsorizer(BaseEstimator, TransformerMixin):
         return input_features if input_features is not None else []
 
 
+class _CompatRemainderColsList(list):
+    """Fallback for loading sklearn<=1.6 ColumnTransformer pickles in sklearn>=1.8."""
+
+
+def _ensure_sklearn_joblib_compatibility():
+    """Register compatibility shims needed to unpickle the shipped sklearn pipelines."""
+
+    import sys
+    from sklearn.compose import _column_transformer
+
+    main_module = sys.modules.get("__main__")
+    if main_module is not None:
+        if not hasattr(main_module, "CrossSectionalMeanImputer"):
+            main_module.CrossSectionalMeanImputer = CrossSectionalMeanImputer
+        if not hasattr(main_module, "Winsorizer"):
+            main_module.Winsorizer = Winsorizer
+
+    if not hasattr(_column_transformer, "_RemainderColsList"):
+        _column_transformer._RemainderColsList = _CompatRemainderColsList
+
+
+def load_model_pipeline(model_path):
+    """Load a saved model pipeline after applying sklearn/joblib compatibility shims."""
+
+    _ensure_sklearn_joblib_compatibility()
+
+    import joblib
+
+    return joblib.load(model_path)
+
+
 
 # Set page configuration
 st.set_page_config(
@@ -1102,8 +1133,7 @@ def model_details_page():
         model_path = f"models/{selected_model}.joblib"
         pipeline = None
         try:
-            import joblib
-            pipeline = joblib.load(model_path)
+            pipeline = load_model_pipeline(model_path)
             # st.write(pipeline)
             
         except FileNotFoundError:
@@ -1170,8 +1200,7 @@ def model_details_page():
         
         pipeline = None
         try:
-            import joblib
-            pipeline = joblib.load(model_path)
+            pipeline = load_model_pipeline(model_path)
             # st.write(pipeline)            
         except FileNotFoundError:
             st.error(f"Model pipeline file not found: {model_path}")
