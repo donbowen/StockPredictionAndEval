@@ -1,0 +1,6 @@
+model,months,no_dispersion_months,mean_share_in_ties
+MLP_huber_128x64,240,0,1.4920645141001198e-05
+MLP_rank_128x64,240,0,6.161486624477468e-06
+MLP_rank_256x128x64_do0.3,240,0,1.033860070505129e-05
+OLS,240,0,0.0
+RidgeCV,240,0,0.0

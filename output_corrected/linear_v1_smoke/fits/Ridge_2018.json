@@ -1,0 +1,53 @@
+{
+ "model": "Ridge",
+ "label": "Ridge (default alpha=1, baseline)",
+ "year": 2018,
+ "config_hash": "99209cc7e080b627",
+ "panel_key": "511a88310dcbe676",
+ "code_hash": "f49b37b61d22e33c",
+ "seed": 0,
+ "baseline_default_alpha": true,
+ "train_rows": 199299,
+ "test_rows": 5990,
+ "train_start": "1975-01-28",
+ "train_end": "2017-12-28",
+ "test_start": "2018-01-28",
+ "test_end": "2018-12-28",
+ "n_features": 258,
+ "dropped_all_missing_or_sparse": {
+  "numbers_dropped_by_missingness": [
+   "Activism1",
+   "FirmAgeMom",
+   "RDAbility",
+   "Activism2",
+   "AgeIPO",
+   "IO_ShortInterest",
+   "ProbInformedTrading"
+  ],
+  "categoricals_dropped_by_missingness": [
+   "AccrualsBM",
+   "ChNAnalyst",
+   "MomRev",
+   "Recomm_ShortInterest",
+   "RIO_Volatility",
+   "ConsRecomm",
+   "sinAlgo"
+  ]
+ },
+ "alpha": 1.0,
+ "intercept": 2.6680093062211245,
+ "coef_l2": 4.346705536219492,
+ "coef_l1": 40.410025776465,
+ "coef_nonzero": 258,
+ "convergence_warnings_final_fit": 0,
+ "other_warnings": [],
+ "n_iter": null,
+ "pred_std": 1.76421852512487,
+ "seconds": {
+  "shared_preprocess_and_transform": 4.63,
+  "shared_search": 14.46,
+  "final_fit": 0.41
+ },
+ "finished_utc": "2026-11-06T22:23:36.897654+00:00",
+ "alpha_over_n_train": 5.0175866411773265e-06
+}

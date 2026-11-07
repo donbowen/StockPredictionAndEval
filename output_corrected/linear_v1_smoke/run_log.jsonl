@@ -1,0 +1,10 @@
+{"time": "2026-11-06T22:23:36.425126+00:00", "event": "fit_done", "model": "OLS", "year": 2018, "alpha": null, "seconds": {"shared_preprocess_and_transform": 4.63, "shared_search": 14.46, "final_fit": 1.69}}
+{"time": "2026-11-06T22:23:36.900072+00:00", "event": "fit_done", "model": "Ridge", "year": 2018, "alpha": 1.0, "seconds": {"shared_preprocess_and_transform": 4.63, "shared_search": 14.46, "final_fit": 0.41}}
+{"time": "2026-11-06T22:23:37.451208+00:00", "event": "fit_done", "model": "RidgeCV", "year": 2018, "alpha": 3162277.6601683795, "seconds": {"shared_preprocess_and_transform": 4.63, "shared_search": 14.46, "final_fit": 0.37}}
+{"time": "2026-11-06T22:23:38.015949+00:00", "event": "fit_done", "model": "Lasso", "year": 2018, "alpha": 1.0, "seconds": {"shared_preprocess_and_transform": 4.63, "shared_search": 14.46, "final_fit": 0.51}}
+{"time": "2026-11-06T22:23:38.626740+00:00", "event": "fit_done", "model": "LassoCV", "year": 2018, "alpha": 0.4099615808017384, "seconds": {"shared_preprocess_and_transform": 4.63, "shared_search": 14.46, "final_fit": 0.53}}
+{"time": "2026-11-06T22:23:57.973549+00:00", "event": "fit_done", "model": "OLS", "year": 2019, "alpha": null, "seconds": {"shared_preprocess_and_transform": 4.28, "shared_search": 14.02, "final_fit": 0.92}}
+{"time": "2026-11-06T22:23:58.460325+00:00", "event": "fit_done", "model": "Ridge", "year": 2019, "alpha": 1.0, "seconds": {"shared_preprocess_and_transform": 4.28, "shared_search": 14.02, "final_fit": 0.43}}
+{"time": "2026-11-06T22:23:58.944418+00:00", "event": "fit_done", "model": "RidgeCV", "year": 2019, "alpha": 3162277.6601683795, "seconds": {"shared_preprocess_and_transform": 4.28, "shared_search": 14.02, "final_fit": 0.42}}
+{"time": "2026-11-06T22:23:59.571782+00:00", "event": "fit_done", "model": "Lasso", "year": 2019, "alpha": 1.0, "seconds": {"shared_preprocess_and_transform": 4.28, "shared_search": 14.02, "final_fit": 0.56}}
+{"time": "2026-11-06T22:24:00.231155+00:00", "event": "fit_done", "model": "LassoCV", "year": 2019, "alpha": 0.4002575245042261, "seconds": {"shared_preprocess_and_transform": 4.28, "shared_search": 14.02, "final_fit": 0.59}}

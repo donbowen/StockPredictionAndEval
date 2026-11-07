@@ -1,0 +1,126 @@
+== smoke test (500 permnos, test years 2018-2019, all five models) ==
+[2018] OLS      alpha=                  None n_train=199,299 nnz=258 fit=1.7s (pre 5s search 14s) warn=0
+[2018] Ridge    alpha=                   1.0 n_train=199,299 nnz=258 fit=0.4s (pre 5s search 14s) warn=0
+[2018] RidgeCV  alpha=    3162277.6601683795 n_train=199,299 nnz=258 fit=0.4s (pre 5s search 14s) warn=0
+[2018] Lasso    alpha=                   1.0 n_train=199,299 nnz=1 fit=0.5s (pre 5s search 14s) warn=0
+[2018] LassoCV  alpha=    0.4099615808017384 n_train=199,299 nnz=6 fit=0.5s (pre 5s search 14s) warn=0
+[2019] OLS      alpha=                  None n_train=205,289 nnz=258 fit=0.9s (pre 4s search 14s) warn=0
+[2019] Ridge    alpha=                   1.0 n_train=205,289 nnz=258 fit=0.4s (pre 4s search 14s) warn=0
+[2019] RidgeCV  alpha=    3162277.6601683795 n_train=205,289 nnz=258 fit=0.4s (pre 4s search 14s) warn=0
+[2019] Lasso    alpha=                   1.0 n_train=205,289 nnz=1 fit=0.6s (pre 4s search 14s) warn=0
+[2019] LassoCV  alpha=    0.4002575245042261 n_train=205,289 nnz=5 fit=0.6s (pre 4s search 14s) warn=0
+evaluation written to output_corrected\linear_v1_smoke\results
+== stage ['OLS'] ==
+[2000] OLS      alpha=                  None n_train=1,726,425 nnz=227 fit=9.8s (pre 36s search 0s) warn=0
+[2001] OLS      alpha=                  None n_train=1,808,937 nnz=238 fit=11.3s (pre 37s search 0s) warn=0
+[2002] OLS      alpha=                  None n_train=1,885,046 nnz=238 fit=11.7s (pre 38s search 0s) warn=0
+[2003] OLS      alpha=                  None n_train=1,954,450 nnz=238 fit=11.7s (pre 40s search 0s) warn=0
+[2004] OLS      alpha=                  None n_train=2,018,649 nnz=238 fit=11.0s (pre 40s search 0s) warn=0
+[2005] OLS      alpha=                  None n_train=2,080,710 nnz=250 fit=12.5s (pre 43s search 0s) warn=0
+[2006] OLS      alpha=                  None n_train=2,142,248 nnz=251 fit=14.9s (pre 44s search 0s) warn=0
+[2007] OLS      alpha=                  None n_train=2,203,029 nnz=255 fit=15.4s (pre 49s search 0s) warn=0
+[2008] OLS      alpha=                  None n_train=2,262,822 nnz=256 fit=14.5s (pre 50s search 0s) warn=0
+[2009] OLS      alpha=                  None n_train=2,321,180 nnz=256 fit=14.9s (pre 48s search 0s) warn=0
+[2010] OLS      alpha=                  None n_train=2,375,822 nnz=256 fit=17.5s (pre 51s search 0s) warn=0
+[2011] OLS      alpha=                  None n_train=2,428,309 nnz=256 fit=16.7s (pre 54s search 0s) warn=0
+[2012] OLS      alpha=                  None n_train=2,479,320 nnz=256 fit=15.8s (pre 53s search 0s) warn=0
+[2013] OLS      alpha=                  None n_train=2,528,903 nnz=256 fit=16.1s (pre 53s search 0s) warn=0
+[2014] OLS      alpha=                  None n_train=2,577,414 nnz=257 fit=16.0s (pre 54s search 0s) warn=0
+[2015] OLS      alpha=                  None n_train=2,627,009 nnz=258 fit=16.4s (pre 55s search 0s) warn=0
+[2016] OLS      alpha=                  None n_train=2,677,595 nnz=258 fit=16.6s (pre 56s search 0s) warn=0
+[2017] OLS      alpha=                  None n_train=2,727,161 nnz=263 fit=17.2s (pre 58s search 0s) warn=0
+[2018] OLS      alpha=                  None n_train=2,775,771 nnz=263 fit=17.5s (pre 59s search 0s) warn=0
+[2019] OLS      alpha=                  None n_train=2,824,545 nnz=263 fit=18.0s (pre 60s search 0s) warn=0
+== stage ['Ridge', 'RidgeCV', 'Lasso', 'LassoCV'] ==
+[2000] Ridge    alpha=                   1.0 n_train=1,726,425 nnz=227 fit=2.7s (pre 34s search 94s) warn=0
+[2000] RidgeCV  alpha=             1000000.0 n_train=1,726,425 nnz=227 fit=2.7s (pre 34s search 94s) warn=0
+[2000] Lasso    alpha=                   1.0 n_train=1,726,425 nnz=1 fit=4.2s (pre 34s search 94s) warn=0
+[2000] LassoCV  alpha=    0.1875366849740217 n_train=1,726,425 nnz=40 fit=4.2s (pre 34s search 94s) warn=0
+[2001] Ridge    alpha=                   1.0 n_train=1,808,937 nnz=238 fit=2.8s (pre 36s search 99s) warn=0
+[2001] RidgeCV  alpha=    3162277.6601683795 n_train=1,808,937 nnz=238 fit=2.8s (pre 36s search 99s) warn=0
+[2001] Lasso    alpha=                   1.0 n_train=1,808,937 nnz=1 fit=4.5s (pre 36s search 99s) warn=0
+[2001] LassoCV  alpha=   0.25529746839764766 n_train=1,808,937 nnz=30 fit=4.5s (pre 36s search 99s) warn=0
+[2002] Ridge    alpha=                   1.0 n_train=1,885,046 nnz=238 fit=3.1s (pre 37s search 105s) warn=0
+[2002] RidgeCV  alpha=    3162277.6601683795 n_train=1,885,046 nnz=238 fit=3.0s (pre 37s search 105s) warn=0
+[2002] Lasso    alpha=                   1.0 n_train=1,885,046 nnz=1 fit=5.0s (pre 37s search 105s) warn=0
+[2002] LassoCV  alpha=    0.2574005667780808 n_train=1,885,046 nnz=33 fit=4.9s (pre 37s search 105s) warn=0
+[2003] Ridge    alpha=                   1.0 n_train=1,954,450 nnz=238 fit=3.0s (pre 38s search 109s) warn=0
+[2003] RidgeCV  alpha=    3162277.6601683795 n_train=1,954,450 nnz=238 fit=3.1s (pre 38s search 109s) warn=0
+[2003] Lasso    alpha=                   1.0 n_train=1,954,450 nnz=1 fit=4.9s (pre 38s search 109s) warn=0
+[2003] LassoCV  alpha=   0.18779666936608702 n_train=1,954,450 nnz=46 fit=4.9s (pre 38s search 109s) warn=0
+[2004] Ridge    alpha=                   1.0 n_train=2,018,649 nnz=238 fit=3.1s (pre 39s search 113s) warn=0
+[2004] RidgeCV  alpha=    3162277.6601683795 n_train=2,018,649 nnz=238 fit=3.1s (pre 39s search 113s) warn=0
+[2004] Lasso    alpha=                   1.0 n_train=2,018,649 nnz=1 fit=5.0s (pre 39s search 113s) warn=0
+[2004] LassoCV  alpha=    0.2626766775366562 n_train=2,018,649 nnz=32 fit=5.1s (pre 39s search 113s) warn=0
+[2005] Ridge    alpha=                   1.0 n_train=2,080,710 nnz=250 fit=3.5s (pre 43s search 116s) warn=0
+[2005] RidgeCV  alpha=            10000000.0 n_train=2,080,710 nnz=250 fit=3.5s (pre 43s search 116s) warn=0
+[2005] Lasso    alpha=                   1.0 n_train=2,080,710 nnz=1 fit=5.5s (pre 43s search 116s) warn=0
+[2005] LassoCV  alpha=    0.4910138157517618 n_train=2,080,710 nnz=9 fit=5.5s (pre 43s search 116s) warn=0
+[2006] Ridge    alpha=                   1.0 n_train=2,142,248 nnz=251 fit=3.5s (pre 43s search 119s) warn=0
+[2006] RidgeCV  alpha=            10000000.0 n_train=2,142,248 nnz=251 fit=3.4s (pre 43s search 119s) warn=0
+[2006] Lasso    alpha=                   1.0 n_train=2,142,248 nnz=1 fit=6.2s (pre 43s search 119s) warn=0
+[2006] LassoCV  alpha=   0.48135321596027225 n_train=2,142,248 nnz=10 fit=6.7s (pre 43s search 119s) warn=0
+[2007] Ridge    alpha=                   1.0 n_train=2,203,029 nnz=255 fit=3.7s (pre 45s search 128s) warn=0
+[2007] RidgeCV  alpha=            10000000.0 n_train=2,203,029 nnz=255 fit=3.7s (pre 45s search 128s) warn=0
+[2007] Lasso    alpha=                   1.0 n_train=2,203,029 nnz=1 fit=6.0s (pre 45s search 128s) warn=0
+[2007] LassoCV  alpha=    0.4744191373090866 n_train=2,203,029 nnz=10 fit=6.1s (pre 45s search 128s) warn=0
+[2008] Ridge    alpha=                   1.0 n_train=2,262,822 nnz=256 fit=3.8s (pre 47s search 135s) warn=0
+[2008] RidgeCV  alpha=            10000000.0 n_train=2,262,822 nnz=256 fit=3.9s (pre 47s search 135s) warn=0
+[2008] Lasso    alpha=                   1.0 n_train=2,262,822 nnz=1 fit=6.3s (pre 47s search 135s) warn=0
+[2008] LassoCV  alpha=    0.8875534153319408 n_train=2,262,822 nnz=1 fit=6.4s (pre 47s search 135s) warn=0
+[2009] Ridge    alpha=                   1.0 n_train=2,321,180 nnz=256 fit=4.0s (pre 47s search 139s) warn=0
+[2009] RidgeCV  alpha=    3162277.6601683795 n_train=2,321,180 nnz=256 fit=4.0s (pre 47s search 139s) warn=0
+[2009] Lasso    alpha=                   1.0 n_train=2,321,180 nnz=1 fit=6.6s (pre 47s search 139s) warn=0
+[2009] LassoCV  alpha=    0.2691849282277264 n_train=2,321,180 nnz=34 fit=6.5s (pre 47s search 139s) warn=0
+[2010] Ridge    alpha=                   1.0 n_train=2,375,822 nnz=256 fit=3.9s (pre 48s search 143s) warn=0
+[2010] RidgeCV  alpha=    3162277.6601683795 n_train=2,375,822 nnz=256 fit=4.0s (pre 48s search 143s) warn=0
+[2010] Lasso    alpha=                   1.0 n_train=2,375,822 nnz=1 fit=6.7s (pre 48s search 143s) warn=0
+[2010] LassoCV  alpha=    0.2765402256028874 n_train=2,375,822 nnz=33 fit=6.7s (pre 48s search 143s) warn=0
+[2011] Ridge    alpha=                   1.0 n_train=2,428,309 nnz=256 fit=4.0s (pre 51s search 147s) warn=0
+[2011] RidgeCV  alpha=    3162277.6601683795 n_train=2,428,309 nnz=256 fit=4.2s (pre 51s search 147s) warn=0
+[2011] Lasso    alpha=                   1.0 n_train=2,428,309 nnz=1 fit=6.9s (pre 51s search 147s) warn=0
+[2011] LassoCV  alpha=    0.2702957002396226 n_train=2,428,309 nnz=31 fit=7.0s (pre 51s search 147s) warn=0
+[2012] Ridge    alpha=                   1.0 n_train=2,479,320 nnz=256 fit=4.2s (pre 50s search 151s) warn=0
+[2012] RidgeCV  alpha=    3162277.6601683795 n_train=2,479,320 nnz=256 fit=4.2s (pre 50s search 151s) warn=0
+[2012] Lasso    alpha=                   1.0 n_train=2,479,320 nnz=1 fit=7.1s (pre 50s search 151s) warn=0
+[2012] LassoCV  alpha=    0.2654069364768435 n_train=2,479,320 nnz=31 fit=7.2s (pre 50s search 151s) warn=0
+[2013] Ridge    alpha=                   1.0 n_train=2,528,903 nnz=256 fit=4.3s (pre 52s search 153s) warn=0
+[2013] RidgeCV  alpha=     31622776.60168379 n_train=2,528,903 nnz=256 fit=4.4s (pre 52s search 153s) warn=0
+[2013] Lasso    alpha=                   1.0 n_train=2,528,903 nnz=1 fit=7.2s (pre 52s search 153s) warn=0
+[2013] LassoCV  alpha=    1.7609062140821394 n_train=2,528,903 nnz=1 fit=7.2s (pre 52s search 153s) warn=0
+[2014] Ridge    alpha=                   1.0 n_train=2,577,414 nnz=257 fit=4.7s (pre 53s search 159s) warn=0
+[2014] RidgeCV  alpha=     31622776.60168379 n_train=2,577,414 nnz=257 fit=4.5s (pre 53s search 159s) warn=0
+[2014] Lasso    alpha=                   1.0 n_train=2,577,414 nnz=1 fit=7.2s (pre 53s search 159s) warn=0
+[2014] LassoCV  alpha=    1.7287702374549854 n_train=2,577,414 nnz=1 fit=7.1s (pre 53s search 159s) warn=0
+[2015] Ridge    alpha=                   1.0 n_train=2,627,009 nnz=258 fit=4.6s (pre 55s search 162s) warn=0
+[2015] RidgeCV  alpha=           100000000.0 n_train=2,627,009 nnz=258 fit=4.5s (pre 55s search 162s) warn=0
+[2015] Lasso    alpha=                   1.0 n_train=2,627,009 nnz=1 fit=7.5s (pre 55s search 162s) warn=0
+[2015] LassoCV  alpha=     1.697592984821531 n_train=2,627,009 nnz=0 fit=7.7s (pre 55s search 162s) warn=0
+[2016] Ridge    alpha=                   1.0 n_train=2,677,595 nnz=258 fit=4.4s (pre 55s search 166s) warn=0
+[2016] RidgeCV  alpha=           100000000.0 n_train=2,677,595 nnz=258 fit=4.6s (pre 55s search 166s) warn=0
+[2016] Lasso    alpha=                   1.0 n_train=2,677,595 nnz=1 fit=7.5s (pre 55s search 166s) warn=0
+[2016] LassoCV  alpha=     1.680121934845078 n_train=2,677,595 nnz=1 fit=7.5s (pre 55s search 166s) warn=0
+[2017] Ridge    alpha=                   1.0 n_train=2,727,161 nnz=263 fit=4.8s (pre 58s search 169s) warn=0
+[2017] RidgeCV  alpha=            10000000.0 n_train=2,727,161 nnz=263 fit=4.7s (pre 58s search 169s) warn=0
+[2017] Lasso    alpha=                   1.0 n_train=2,727,161 nnz=1 fit=7.7s (pre 58s search 169s) warn=0
+[2017] LassoCV  alpha=    1.2141067004377994 n_train=2,727,161 nnz=1 fit=7.6s (pre 58s search 169s) warn=0
+[2018] Ridge    alpha=                   1.0 n_train=2,775,771 nnz=263 fit=4.9s (pre 58s search 174s) warn=0
+[2018] RidgeCV  alpha=     31622776.60168379 n_train=2,775,771 nnz=263 fit=4.9s (pre 58s search 174s) warn=0
+[2018] Lasso    alpha=                   1.0 n_train=2,775,771 nnz=1 fit=7.7s (pre 58s search 174s) warn=0
+[2018] LassoCV  alpha=    0.6354842196162946 n_train=2,775,771 nnz=3 fit=7.8s (pre 58s search 174s) warn=0
+[2019] Ridge    alpha=                   1.0 n_train=2,824,545 nnz=263 fit=5.0s (pre 60s search 178s) warn=0
+[2019] RidgeCV  alpha=     31622776.60168379 n_train=2,824,545 nnz=263 fit=5.0s (pre 60s search 178s) warn=0
+[2019] Lasso    alpha=                   1.0 n_train=2,824,545 nnz=1 fit=8.1s (pre 60s search 178s) warn=0
+[2019] LassoCV  alpha=     0.865287734177684 n_train=2,824,545 nnz=1 fit=8.0s (pre 60s search 178s) warn=0
+== evaluate ==
+Traceback (most recent call last):
+  File "C:\Users\deb219\Desktop\StockPredictionAndEval\.claude\worktrees\linear-model-predictor-timing-740c51\run_linear_backtest.py", line 63, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "C:\Users\deb219\Desktop\StockPredictionAndEval\.claude\worktrees\linear-model-predictor-timing-740c51\run_linear_backtest.py", line 58, in main
+    evaluate_run(base)
+    ~~~~~~~~~~~~^^^^^^
+  File "C:\Users\deb219\Desktop\StockPredictionAndEval\.claude\worktrees\linear-model-predictor-timing-740c51\stockpred\report.py", line 102, in evaluate_run
+    assert (pred["ret"].abs() < 1000).all()
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+AssertionError

@@ -1,0 +1,24 @@
+{
+ "models": [
+  "OLS",
+  "Ridge",
+  "RidgeCV",
+  "Lasso",
+  "LassoCV"
+ ],
+ "unique_stock_month_keys": true,
+ "finite_predictions": true,
+ "signal_precedes_return_by_one_month": true,
+ "train_ends_before_test_starts": true,
+ "inner_validation_years_before_test_year": true,
+ "prediction_years": [
+  2018,
+  2019
+ ],
+ "return_units": "panel ret in percent; converted to decimals once here (min=-0.819 max=3.541)",
+ "tall_equals_wide": true,
+ "long_short_equals_bin5_minus_bin1": true,
+ "portfolio_weights_sum_to_one_per_bin_month": true,
+ "no_empty_portfolios": true,
+ "wealth_convention": "wealth = cumprod(1 + r_LS), start $1. Exposure convention: $1 long the top quintile and $1 short the bottom quintile per $1 of strategy equity, rebalanced monthly, before transaction costs, borrow fees and financing/short-rebate effects."
+}

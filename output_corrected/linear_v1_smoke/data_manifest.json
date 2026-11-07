@@ -1,0 +1,43 @@
+{
+ "input_files": {
+  "crsp_data.csv": "6eb7b285f2e2f462b50944861cb62556fd6cf289d339f437935dba942ed06534",
+  "ff_factors.csv": "a48fe817f8a3478823a51f90215a9012c3cb702746bd34592bed9b1b36577d35",
+  "signal_documentation.csv": "590a308e40483fa87c0cbb95f73c010d09a61e22a3e2059627d2b3de9b77e0d9",
+  "signed_predictors_dl_wide.zip": {
+   "member": "signed_predictors_dl_wide.csv",
+   "size": 6021168314,
+   "crc32": "3cb00d09"
+  }
+ },
+ "data_dir": "C:\\Users\\deb219\\Desktop\\StockPredictionAndEval\\input_data",
+ "panel_key": "511a88310dcbe676",
+ "rows": 211074,
+ "permnos": 500,
+ "return_months": [
+  "1975-01-28",
+  "2019-12-28"
+ ],
+ "signal_months": [
+  "1974-12-28",
+  "2019-11-28"
+ ],
+ "n_continuous_candidates": 182,
+ "n_discrete_candidates": 33,
+ "timing_examples": {
+  "december_to_january": {
+   "signal_date": "1974-12-28",
+   "ff_source_date": "1974-12-28",
+   "return_date": "1975-01-28"
+  },
+  "first_row": {
+   "signal_date": "1974-12-28",
+   "return_date": "1975-01-28"
+  }
+ },
+ "factor_timing_check": {
+  "example_return_month": "1975-01-28",
+  "factor_measured_in": "1974-12-28"
+ },
+ "holdout_policy": "Only return months <= 2019 are loaded. 2020 is an unused buffer year (neither trained on nor evaluated); 2021+ is an untouched holdout.",
+ "units": "ret in percent in the panel; portfolio code converts to decimals"
+}

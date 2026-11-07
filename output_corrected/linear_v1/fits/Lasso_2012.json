@@ -1,0 +1,54 @@
+{
+ "model": "Lasso",
+ "label": "Lasso (default alpha=1, baseline)",
+ "year": 2012,
+ "config_hash": "2b371948929a83d6",
+ "panel_key": "511a88310dcbe676",
+ "code_hash": "f49b37b61d22e33c",
+ "seed": 0,
+ "baseline_default_alpha": true,
+ "train_rows": 2479320,
+ "test_rows": 49583,
+ "train_start": "1975-01-28",
+ "train_end": "2011-12-28",
+ "test_start": "2012-01-28",
+ "test_end": "2012-12-28",
+ "n_features": 256,
+ "dropped_all_missing_or_sparse": {
+  "numbers_dropped_by_missingness": [
+   "Activism1",
+   "CustomerMomentum",
+   "Mom6mJunk",
+   "RDAbility",
+   "Activism2",
+   "DelDRC",
+   "IO_ShortInterest",
+   "ProbInformedTrading",
+   "skew1"
+  ],
+  "categoricals_dropped_by_missingness": [
+   "AccrualsBM",
+   "ChNAnalyst",
+   "MomRev",
+   "Recomm_ShortInterest",
+   "RIO_MB",
+   "ConsRecomm",
+   "sinAlgo"
+  ]
+ },
+ "alpha": 1.0,
+ "intercept": 1.3604617048626253,
+ "coef_l2": 0.7844257266007838,
+ "coef_l1": 0.7844257266007838,
+ "coef_nonzero": 1,
+ "convergence_warnings_final_fit": 0,
+ "other_warnings": [],
+ "n_iter": 2,
+ "pred_std": 0.5213144339495883,
+ "seconds": {
+  "shared_preprocess_and_transform": 50.49,
+  "shared_search": 151.37,
+  "final_fit": 7.13
+ },
+ "finished_utc": "2026-11-06T23:25:21.295884+00:00"
+}

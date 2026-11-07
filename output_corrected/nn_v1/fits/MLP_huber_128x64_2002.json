@@ -1,0 +1,281 @@
+{
+ "model": "MLP_huber_128x64",
+ "year": 2002,
+ "config_hash": "53335f3a4236e7d9",
+ "panel_key": "511a88310dcbe676",
+ "code_hash": "f49b37b61d22e33c",
+ "nn_code_hash": "647cd93b920fbacc",
+ "spec": {
+  "name": "MLP_huber_128x64",
+  "hidden": [
+   128,
+   64
+  ],
+  "dropout": 0.0,
+  "weight_decay": 0.0001,
+  "lr": 0.001,
+  "batch_size": 4096,
+  "max_epochs": 40,
+  "patience": 5,
+  "loss": "huber",
+  "target": "clip",
+  "clip_q": [
+   0.005,
+   0.995
+  ],
+  "batchnorm": false,
+  "n_seeds": 5
+ },
+ "seeds": [
+  2002000,
+  2002001,
+  2002002,
+  2002003,
+  2002004
+ ],
+ "train_rows": 1641242,
+ "val_rows": 243804,
+ "test_rows": 69404,
+ "train_start": "1975-01-28",
+ "train_end": "1998-12-28",
+ "val_start": "1999-01-28",
+ "val_end": "2001-12-28",
+ "test_start": "2002-01-28",
+ "n_features": 238,
+ "pred_std": 5.670051616324934,
+ "val_spearman_ic": 0.11645295322140511,
+ "val_pearson_ic_ensemble": 0.09722030504013902,
+ "target_scale": 15.532186389417593,
+ "clip_bounds_pct": [
+  -44.4444,
+  75.68412699999921
+ ],
+ "runs": [
+  {
+   "best_epoch": 0,
+   "best_val_ic_pearson": 0.08636899168573214,
+   "epochs_run": 6,
+   "history": [
+    {
+     "epoch": 0,
+     "train_loss": 0.33778456016717096,
+     "val_ic_pearson": 0.08636899168573214
+    },
+    {
+     "epoch": 1,
+     "train_loss": 0.323436942462368,
+     "val_ic_pearson": 0.07648051108242027
+    },
+    {
+     "epoch": 2,
+     "train_loss": 0.3174539705285448,
+     "val_ic_pearson": 0.07381735433708991
+    },
+    {
+     "epoch": 3,
+     "train_loss": 0.31413150935465306,
+     "val_ic_pearson": 0.07102055981300158
+    },
+    {
+     "epoch": 4,
+     "train_loss": 0.3118720060951034,
+     "val_ic_pearson": 0.06717048808731059
+    },
+    {
+     "epoch": 5,
+     "train_loss": 0.31034698798395416,
+     "val_ic_pearson": 0.05966563020419036
+    }
+   ],
+   "seed": 2002000,
+   "seconds": 2.4
+  },
+  {
+   "best_epoch": 3,
+   "best_val_ic_pearson": 0.0697641773188451,
+   "epochs_run": 9,
+   "history": [
+    {
+     "epoch": 0,
+     "train_loss": 0.3368819772488125,
+     "val_ic_pearson": 0.06814083497655454
+    },
+    {
+     "epoch": 1,
+     "train_loss": 0.32205034807369426,
+     "val_ic_pearson": 0.06307827692293827
+    },
+    {
+     "epoch": 2,
+     "train_loss": 0.3162608795237089,
+     "val_ic_pearson": 0.06631256591989079
+    },
+    {
+     "epoch": 3,
+     "train_loss": 0.31298491447809423,
+     "val_ic_pearson": 0.0697641773188451
+    },
+    {
+     "epoch": 4,
+     "train_loss": 0.31086888863163104,
+     "val_ic_pearson": 0.06305450822197103
+    },
+    {
+     "epoch": 5,
+     "train_loss": 0.3092078511537442,
+     "val_ic_pearson": 0.06245322014231173
+    },
+    {
+     "epoch": 6,
+     "train_loss": 0.30797564638282127,
+     "val_ic_pearson": 0.04428274613675687
+    },
+    {
+     "epoch": 7,
+     "train_loss": 0.3069682624599632,
+     "val_ic_pearson": 0.05016299937233558
+    },
+    {
+     "epoch": 8,
+     "train_loss": 0.3061242208406897,
+     "val_ic_pearson": 0.03625771457681286
+    }
+   ],
+   "seed": 2002001,
+   "seconds": 3.6
+  },
+  {
+   "best_epoch": 0,
+   "best_val_ic_pearson": 0.08095837116150331,
+   "epochs_run": 6,
+   "history": [
+    {
+     "epoch": 0,
+     "train_loss": 0.3394486170549078,
+     "val_ic_pearson": 0.08095837116150331
+    },
+    {
+     "epoch": 1,
+     "train_loss": 0.323813753886573,
+     "val_ic_pearson": 0.07620543812374857
+    },
+    {
+     "epoch": 2,
+     "train_loss": 0.31743730245680707,
+     "val_ic_pearson": 0.07820626775527367
+    },
+    {
+     "epoch": 3,
+     "train_loss": 0.3140112562547591,
+     "val_ic_pearson": 0.06568825034369648
+    },
+    {
+     "epoch": 4,
+     "train_loss": 0.3116378762815245,
+     "val_ic_pearson": 0.0666263259865826
+    },
+    {
+     "epoch": 5,
+     "train_loss": 0.30997059597312226,
+     "val_ic_pearson": 0.07156474101410097
+    }
+   ],
+   "seed": 2002002,
+   "seconds": 2.4
+  },
+  {
+   "best_epoch": 2,
+   "best_val_ic_pearson": 0.10113723894516712,
+   "epochs_run": 8,
+   "history": [
+    {
+     "epoch": 0,
+     "train_loss": 0.338265556434065,
+     "val_ic_pearson": 0.08002048555590328
+    },
+    {
+     "epoch": 1,
+     "train_loss": 0.32362800721449775,
+     "val_ic_pearson": 0.07605001579860815
+    },
+    {
+     "epoch": 2,
+     "train_loss": 0.3171853854124829,
+     "val_ic_pearson": 0.10113723894516712
+    },
+    {
+     "epoch": 3,
+     "train_loss": 0.3136645712451944,
+     "val_ic_pearson": 0.0943324598098895
+    },
+    {
+     "epoch": 4,
+     "train_loss": 0.3114610427817776,
+     "val_ic_pearson": 0.08325263558206553
+    },
+    {
+     "epoch": 5,
+     "train_loss": 0.30977301257587964,
+     "val_ic_pearson": 0.0764331460959036
+    },
+    {
+     "epoch": 6,
+     "train_loss": 0.30845875306227577,
+     "val_ic_pearson": 0.07354175570414245
+    },
+    {
+     "epoch": 7,
+     "train_loss": 0.3073438561790729,
+     "val_ic_pearson": 0.07452368852510306
+    }
+   ],
+   "seed": 2002003,
+   "seconds": 3.1
+  },
+  {
+   "best_epoch": 0,
+   "best_val_ic_pearson": 0.08667891510879983,
+   "epochs_run": 6,
+   "history": [
+    {
+     "epoch": 0,
+     "train_loss": 0.3379197350312834,
+     "val_ic_pearson": 0.08667891510879983
+    },
+    {
+     "epoch": 1,
+     "train_loss": 0.3231274055862729,
+     "val_ic_pearson": 0.07265813220410458
+    },
+    {
+     "epoch": 2,
+     "train_loss": 0.3168754157885781,
+     "val_ic_pearson": 0.08076740859814714
+    },
+    {
+     "epoch": 3,
+     "train_loss": 0.3135255848616083,
+     "val_ic_pearson": 0.07264066436721119
+    },
+    {
+     "epoch": 4,
+     "train_loss": 0.3113341911010415,
+     "val_ic_pearson": 0.0624422578785408
+    },
+    {
+     "epoch": 5,
+     "train_loss": 0.309731346254232,
+     "val_ic_pearson": 0.0683370277201857
+    }
+   ],
+   "seed": 2002004,
+   "seconds": 2.4
+  }
+ ],
+ "n_params": 38913,
+ "seconds": {
+  "shared_preprocess_and_transform": 37.5,
+  "train_and_predict": 14.4
+ },
+ "finished_utc": "2026-11-07T13:39:52.201134+00:00"
+}

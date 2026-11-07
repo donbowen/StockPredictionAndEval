@@ -1,0 +1,24 @@
+{
+ "python": "3.13.5",
+ "platform": "Windows-11-10.0.26200-SP0",
+ "numpy": "2.1.0",
+ "pandas": "2.2.3",
+ "scikit-learn": "1.6.1",
+ "scipy": "1.15.3",
+ "statsmodels": "0.14.6",
+ "pyarrow": "23.0.1",
+ "joblib": "1.4.2",
+ "cpu_logical": 24,
+ "blas_threads_used": 12,
+ "model_fit_device": "NVIDIA GeForce RTX 5090 (PyTorch)",
+ "git": {
+  "commit": "396b19324f5d7ff5f9f461ac0f45d1647b277b7c",
+  "branch": "claude/linear-model-predictor-timing-740c51",
+  "dirty": true
+ },
+ "code_hash": "f49b37b61d22e33c",
+ "ram_total_gb": 127.5,
+ "ram_available_gb_at_start": 72.3,
+ "torch": "2.9.1+cu130",
+ "nn_code_hash": "647cd93b920fbacc"
+}

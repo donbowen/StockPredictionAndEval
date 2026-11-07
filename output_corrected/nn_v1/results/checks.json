@@ -1,0 +1,17 @@
+{
+ "models": [
+  "OLS",
+  "RidgeCV",
+  "MLP_rank_256x128x64_do0.3",
+  "MLP_rank_128x64",
+  "MLP_huber_128x64"
+ ],
+ "finite_predictions": true,
+ "unique_keys": true,
+ "signal_precedes_return": true,
+ "nn_train_val_test_strictly_ordered": true,
+ "ls_equals_bin5_minus_bin1": true,
+ "weights_sum_to_one": true,
+ "no_empty_portfolios": true,
+ "wealth_convention": "wealth = cumprod(1 + r_LS), start $1. Exposure convention: $1 long the top quintile and $1 short the bottom quintile per $1 of strategy equity, rebalanced monthly, before transaction costs, borrow fees and financing/short-rebate effects."
+}

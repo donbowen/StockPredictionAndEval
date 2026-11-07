@@ -81,3 +81,6 @@ input_data/signed*
 
 # Streamlit
 .streamlit/secrets.toml
+work_cache/
+output_corrected/*/predictions/
+output_corrected/*/models/

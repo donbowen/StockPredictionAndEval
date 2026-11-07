@@ -95,6 +95,23 @@ To run the full analysis pipeline, open and run the Jupyter notebook (`stock_pre
 4. Create and evaluate portfolios
 5. Save results to the output directories
 
+
+### Corrected linear-model backtest (v2 pipeline)
+
+The implementation lives in the `stockpred/` package; `stock_prediction_and_eval.ipynb` is a thin driver around it and
+the original notebook is kept in `legacy/` (its outputs remain in `output_portfolios/` for comparison).
+
+Reproduce everything (smoke test, OLS, Ridge/RidgeCV/Lasso/LassoCV, evaluation) with one command:
+
+```bash
+python run_linear_backtest.py --data-dir input_data --run-id linear_v1
+```
+
+Outputs go to `output_corrected/<run-id>/` (config, environment, data manifest, per-fit metadata, predictions,
+fitted pipelines and `results/` tables + `report.md`). Fits are resumed only if their config/data/code hashes match.
+Timing: signals and predictor factors measured in month *t* predict returns in month *t+1*; 2020 is an unused
+buffer year and 2021+ an untouched holdout (never loaded). Tests: `python -m pytest tests`.
+
 ### Running the Dashboard
 
 To launch the interactive dashboard:

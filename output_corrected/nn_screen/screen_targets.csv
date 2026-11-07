@@ -1,0 +1,5 @@
+stage,name,hidden,dropout,wd,lr,target,loss,bn,val_spearman_ic,val_pearson_ic,best_epoch,epochs_run,params,seconds
+target,t_raw,"[128, 64]",0.0,0.0001,0.001,raw,mse,False,0.06461607499868566,0.08058339560327497,3,9,40449,5.4
+target,t_demean,"[128, 64]",0.0,0.0001,0.001,cs_demean,mse,False,0.07019374506473657,0.09388465553791152,0,6,40449,3.6
+target,t_rank,"[128, 64]",0.0,0.0001,0.001,rank,mse,False,0.09598345305350256,0.08436125412411655,0,6,40449,3.9
+target,t_clip_huber,"[128, 64]",0.0,0.0001,0.001,clip,huber,False,0.0770901584875984,0.0811432619056218,4,10,40449,5.0

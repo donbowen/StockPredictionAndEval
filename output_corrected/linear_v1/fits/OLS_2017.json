@@ -1,0 +1,51 @@
+{
+ "model": "OLS",
+ "label": "OLS",
+ "year": 2017,
+ "config_hash": "2b371948929a83d6",
+ "panel_key": "511a88310dcbe676",
+ "code_hash": "f49b37b61d22e33c",
+ "seed": 0,
+ "baseline_default_alpha": false,
+ "train_rows": 2727161,
+ "test_rows": 48610,
+ "train_start": "1975-01-28",
+ "train_end": "2016-12-28",
+ "test_start": "2017-01-28",
+ "test_end": "2017-12-28",
+ "n_features": 263,
+ "dropped_all_missing_or_sparse": {
+  "numbers_dropped_by_missingness": [
+   "Activism1",
+   "CustomerMomentum",
+   "RDAbility",
+   "Activism2",
+   "DelDRC",
+   "IO_ShortInterest",
+   "ProbInformedTrading"
+  ],
+  "categoricals_dropped_by_missingness": [
+   "AccrualsBM",
+   "ChNAnalyst",
+   "MomRev",
+   "Recomm_ShortInterest",
+   "ConsRecomm",
+   "sinAlgo"
+  ]
+ },
+ "alpha": null,
+ "intercept": 3.09456517009069,
+ "coef_l2": 4.466677523133553,
+ "coef_l1": 41.97497469587343,
+ "coef_nonzero": 263,
+ "convergence_warnings_final_fit": 0,
+ "other_warnings": [],
+ "n_iter": null,
+ "pred_std": 2.7411064575768496,
+ "seconds": {
+  "shared_preprocess_and_transform": 57.64,
+  "shared_search": 0.0,
+  "final_fit": 17.17
+ },
+ "finished_utc": "2026-11-06T22:42:47.571136+00:00"
+}
