@@ -815,13 +815,16 @@ def compare_models_page():
         returns_wide_df, _, _ = load_data()
         
         # Extract model names
-        model_names = list(set([col.split('_')[1] for col in returns_wide_df.columns if 'ret_' in col]))
-        
+        model_names = sorted(set([col.split('_')[1] for col in returns_wide_df.columns if 'ret_' in col]))
+
+        # Default selection: OLS first, then the first others alphabetically (5 models in total)
+        default_models = (['OLS'] if 'OLS' in model_names else []) + [m for m in model_names if m != 'OLS']
+
         # Model selection
         selected_models = st.multiselect(
             "Select models to compare:",
             options=model_names,
-            default=model_names[:min(5, len(model_names))]  # Default to first 5 or fewer
+            default=default_models[:min(5, len(default_models))]
         )
         
         if not selected_models:
@@ -1065,8 +1068,8 @@ def model_details_page():
     # Extract model names
     model_names = list(set([col.split('_')[1] for col in returns_wide_df.columns if 'ret_' in col]))
     
-    # Make the first model the Ridge model
-    model_names = ['Ridge'] + sorted([m for m in model_names if m != 'Ridge'])
+    # Make the first (default) model LassoCV
+    model_names = ['LassoCV'] + sorted([m for m in model_names if m != 'LassoCV'])
     
     # Model selection
     selected_model = st.selectbox(
