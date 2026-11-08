@@ -112,6 +112,18 @@ fitted pipelines and `results/` tables + `report.md`). Fits are resumed only if 
 Timing: signals and predictor factors measured in month *t* predict returns in month *t+1*; 2020 is an unused
 buffer year and 2021+ an untouched holdout (never loaded). Tests: `python -m pytest tests`.
 
+### Neural networks and the dashboard data (v2 pipeline)
+
+```bash
+python run_nn_screen.py --year 2005      # architecture / target screen (no test data touched)
+python run_nn_backtest.py                # three 5-seed MLP ensembles, 2000-2019, then evaluation (needs PyTorch)
+python build_dashboard_bundle.py         # writes output_corrected/dashboard/ for the Streamlit app
+```
+
+The dashboard shows the corrected results by default (sidebar switch for the legacy results). Its model-pipeline and
+variable-importance tabs load the per-year saved pipelines, so run the backtests locally first; saved models are
+not stored in git.
+
 ### Running the Dashboard
 
 To launch the interactive dashboard:

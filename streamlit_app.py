@@ -1,6 +1,8 @@
 # later, not now: add more models (OLS, MLP) to ipynb data that feeds into this
 # I'd love to add in lazy prices!
 
+from pathlib import Path
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -137,6 +139,23 @@ def _get_mlp_feature_importances(estimator, feature_names):
     return pd.Series(downstream, index=feature_names)
 
 
+def _get_torch_ensemble_feature_importances(estimator, feature_names):
+    """Same absolute-weight propagation as for sklearn MLPs, averaged over the ensemble's networks."""
+
+    states = getattr(estimator, "states", None)
+    if not states:
+        return None
+
+    total = None
+    for state in states:
+        weights = [np.abs(np.asarray(v)) for k, v in state.items() if k.endswith(".weight") and np.ndim(v) == 2]
+        downstream = np.ones(weights[-1].shape[0])
+        for w in reversed(weights):                      # torch weights are (out, in)
+            downstream = w.T @ downstream
+        total = downstream if total is None else total + downstream
+    return pd.Series(total / len(states), index=feature_names)
+
+
 def _get_hist_gradient_boosting_feature_importances(estimator, feature_names):
     """Estimate HGBR feature importance from cumulative split gain across all trees."""
 
@@ -192,6 +211,17 @@ def get_feature_importance_details(estimator, feature_names):
             "caption": "Estimated by propagating each feature's absolute learned weights through the network.",
         }
 
+    if estimator.__class__.__name__ == "MLPEnsemble":
+        return {
+            "subheader": "🧠 Estimated Neural Network Importances",
+            "x_label": "Estimated Importance",
+            "title": "Estimated Neural Network Importance",
+            "series": _get_torch_ensemble_feature_importances(estimator, feature_names),
+            "sort_by_absolute_value": False,
+            "caption": "Estimated by propagating absolute learned weights through each network, averaged over the "
+                       "ensemble's seeds. A rough guide only: it ignores the ReLU non-linearities.",
+        }
+
     if estimator.__class__.__name__ == "HistGradientBoostingRegressor":
         return {
             "subheader": "🌳 Estimated Gradient Boosting Importances",
@@ -214,12 +244,65 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Two result sets can be browsed: the corrected pipeline (built by build_dashboard_bundle.py) and
+# the original saved results, which used mis-timed factors and an annual imputer.
+RESULT_SOURCES = {
+    "Corrected pipeline (v2)": "output_corrected/dashboard",
+    "Original results (legacy, known timing issues)": "output_portfolios",
+}
+CORRECTED_LABEL, LEGACY_LABEL = list(RESULT_SOURCES)
+
+
+def _default_source_label():
+    return CORRECTED_LABEL if Path(RESULT_SOURCES[CORRECTED_LABEL], "returns_wide.csv").exists() else LEGACY_LABEL
+
+
+def active_source_label():
+    return st.session_state.get("results_source", _default_source_label())
+
+
+def corrected_model_index():
+    """{dashboard model name: {run, model, description}} for the corrected results ({} if absent)."""
+    import json
+    p = Path(RESULT_SOURCES[CORRECTED_LABEL]) / "models_index.json"
+    return json.loads(p.read_text()) if p.exists() else {}
+
+
+def corrected_model_files(selected_model):
+    """{test year: path} of the per-year saved pipelines of a corrected-pipeline model."""
+    info = corrected_model_index().get(selected_model)
+    if info is None:
+        return {}
+    folder = Path("output_corrected") / info["run"] / "models"
+    return {int(p.stem.rsplit("_", 1)[1]): p for p in sorted(folder.glob(f"{info['model']}_*.joblib"))}
+
+
+def select_model_path(selected_model, key):
+    """Path of the saved pipeline to inspect. The corrected pipeline refits every test year, so
+    those models get a year picker; the legacy models are a single file each."""
+    if active_source_label() == LEGACY_LABEL:
+        return f"models/{selected_model}.joblib"
+    files = corrected_model_files(selected_model)
+    if not files:
+        st.warning("No saved pipelines found for this model. Re-run run_linear_backtest.py / run_nn_backtest.py "
+                   "(saved models are not stored in git).")
+        return f"output_corrected/missing/{selected_model}.joblib"
+    year = st.selectbox("Test year (the model was trained only on earlier years)", sorted(files), index=len(files) - 1,
+                        key=key)
+    return files[year]
+
+
 # Cache data loading functions
-@st.cache_data
 def load_data():
+    """Portfolio data for the result set chosen in the sidebar."""
+    return _load_data(RESULT_SOURCES[active_source_label()])
+
+
+@st.cache_data
+def _load_data(source_dir):
     """Load portfolio data from CSV files"""
-    returns_wide_df = pd.read_csv('output_portfolios/returns_wide.csv')
-    port_stats_tall_df = pd.read_csv('output_portfolios/port_stats_tall.csv')
+    returns_wide_df = pd.read_csv(f'{source_dir}/returns_wide.csv')
+    port_stats_tall_df = pd.read_csv(f'{source_dir}/port_stats_tall.csv')
     
     # Convert date to datetime
     returns_wide_df['date'] = pd.to_datetime(returns_wide_df['date'])
@@ -229,7 +312,7 @@ def load_data():
     returns_wide_df = returns_wide_df.set_index('date')
     
     # turnover data: model,bin,date,% buy,% sell,% hold
-    turnover_df = pd.read_csv('output_portfolios/turnover.csv')
+    turnover_df = pd.read_csv(f'{source_dir}/turnover.csv')
     turnover_df['date'] = pd.to_datetime(turnover_df['date'])
     turnover_df = turnover_df.set_index('date')
     
@@ -695,6 +778,19 @@ def intro_page():
     Students could add calculations to this dashboard to estimate the impact of trading costs on the portfolios.
     """)
     
+    if active_source_label() == CORRECTED_LABEL:
+        st.success(
+            "Showing the **corrected pipeline (v2)**: predictor factors are lagged one month, missing values are "
+            "filled with same-month cross-sectional means, all preprocessing and tuning use only earlier years, and "
+            "portfolios use a documented tie policy. Neural networks were trained on a within-month rank target "
+            "(5-seed averages). Caveats: equal-weighted quintiles, before transaction costs, no delisting returns, "
+            "and the strong results likely lean on microcaps and volatile stocks. Switch to the legacy results in "
+            "the sidebar to compare."
+        )
+        index = corrected_model_index()
+        if index:
+            st.markdown("\n".join(f"- **{k}**: {v['description']}" for k, v in index.items()))
+
     # Load and display some basic statistics
     try:
         returns_wide_df, _, _ = load_data()
@@ -1217,7 +1313,7 @@ def model_details_page():
         
         # load the model/model_name joblib pipeline
         
-        model_path = f"models/{selected_model}.joblib"
+        model_path = select_model_path(selected_model, key="pipeline_year")
         pipeline = None
         try:
             pipeline = load_model_pipeline(model_path)
@@ -1274,7 +1370,7 @@ def model_details_page():
 
         top_n = st.slider("Top N features", 5, 50, 20, step=5)
 
-        model_path = f"models/{selected_model}.joblib"
+        model_path = select_model_path(selected_model, key="importance_year")
         pipeline = None
         try:
             pipeline = load_model_pipeline(model_path)
@@ -1333,6 +1429,12 @@ def sidebar_navigation():
         "Go to:",
         ["Introduction", "Background & Methods", "Compare Models", "Dig into a Model"]
     )
+    labels = [l for l in RESULT_SOURCES if Path(RESULT_SOURCES[l], "returns_wide.csv").exists()]
+    if len(labels) > 1:
+        st.sidebar.radio("Results shown", labels, index=labels.index(_default_source_label()), key="results_source")
+    if active_source_label() == LEGACY_LABEL:
+        st.sidebar.warning("Legacy results: factors were not lagged one month and the imputer used annual means. "
+                           "Kept only for comparison.")
     return page
 
 import plotly.graph_objs as go

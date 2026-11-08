@@ -1,0 +1,42 @@
+{
+ "OLS": {
+  "run": "linear_v1",
+  "model": "OLS",
+  "description": "OLS"
+ },
+ "Ridge": {
+  "run": "linear_v1",
+  "model": "Ridge",
+  "description": "Ridge, default alpha=1 (baseline)"
+ },
+ "RidgeCV": {
+  "run": "linear_v1",
+  "model": "RidgeCV",
+  "description": "Ridge, alpha chosen by chronological validation"
+ },
+ "Lasso": {
+  "run": "linear_v1",
+  "model": "Lasso",
+  "description": "Lasso, default alpha=1 (baseline)"
+ },
+ "LassoCV": {
+  "run": "linear_v1",
+  "model": "LassoCV",
+  "description": "Lasso, alpha chosen by chronological validation"
+ },
+ "MLP-rank-256-128-64": {
+  "run": "nn_v1",
+  "model": "MLP_rank_256x128x64_do0.3",
+  "description": "MLP 256-128-64, dropout 0.3, within-month rank target, 5-seed average"
+ },
+ "MLP-rank-128-64": {
+  "run": "nn_v1",
+  "model": "MLP_rank_128x64",
+  "description": "MLP 128-64, within-month rank target, 5-seed average"
+ },
+ "MLP-huber-128-64": {
+  "run": "nn_v1",
+  "model": "MLP_huber_128x64",
+  "description": "MLP 128-64, Huber loss on clipped return, 5-seed average"
+ }
+}
