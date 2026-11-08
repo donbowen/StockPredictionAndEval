@@ -12,7 +12,7 @@ from .evaluation import WEALTH_NOTE, factor_regressions, performance_table, perf
 from .portfolio import bin_turnover, bin_weights, portfolio_returns, tie_diagnostics
 from .runner import MODEL_LABELS, MODEL_ORDER, Config
 
-ORIGINAL_RETURNS = Path("output_portfolios/returns_wide.csv")   # saved results of the ORIGINAL (buggy) pipeline
+ORIGINAL_RETURNS = Path("output_portfolios/returns_wide.csv")   # results of the first (removed) pipeline; comparison skipped if absent
 NPORT = 5
 
 
@@ -193,7 +193,8 @@ def evaluate_run(cfg: Config, starts=("2000-01", "2002-01", "2005-01", "2010-01"
 
     # ---- comparison with the ORIGINAL saved results
     comp = compare_with_original(ls, starts, max(years))
-    comp.to_csv(out / "comparison_vs_original.csv", index=False)
+    if len(comp):          # the original results are no longer in the repo; keep the committed table
+        comp.to_csv(out / "comparison_vs_original.csv", index=False)
 
     (out / "checks.json").write_text(json.dumps(checks, indent=1, default=str))
     write_markdown(cfg, out, perf, tie_summary, tuned, shr, comp, checks, smoke)

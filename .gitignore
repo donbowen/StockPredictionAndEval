@@ -84,3 +84,6 @@ input_data/signed*
 work_cache/
 output_corrected/*/predictions/
 output_corrected/*/models/
+
+# outputs of the self-contained notebook
+output_notebook*/

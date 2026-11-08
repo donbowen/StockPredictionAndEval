@@ -13,88 +13,6 @@ from datetime import datetime
 import statsmodels.formula.api as smf
 import plotly.express as px
 
-from sklearn.base import BaseEstimator, TransformerMixin
-
-class CrossSectionalMeanImputer(BaseEstimator, TransformerMixin):
-    def __init__(self, features_to_impute=None):
-        self.features_to_impute = features_to_impute 
-
-    def fit(self, X, y=None):
-        # Nothing to fit — this imputer calculates means on the fly
-        return self
-    
-    def get_feature_names_out(self, input_features=None):
-        return input_features if input_features is not None else []
-
-    def transform(self, X):
-        X = X.copy()
-        
-        # Make sure it's a DataFrame
-        if not isinstance(X, pd.DataFrame):
-            raise ValueError("CrossSectionalMeanImputer only works on pandas DataFrames")
-        
-        # Check if index is a MultiIndex with 'date' as one of the levels
-        if not isinstance(X.index, pd.MultiIndex) or 'date' not in X.index.names:
-            try:
-                # add date to the index if it's not already there
-                X = X.set_index(['permno','date'])
-            except:
-                raise ValueError("Input DataFrame must have a MultiIndex with 'date' as one of the levels")
-        
-        # Create a year variable
-        X['_year'] = pd.to_datetime(X.index.get_level_values('date').year.values)
-        
-        # For each numeric column, fill NaNs with cross-sectional mean within each year
-        # numeric_cols = X.select_dtypes(include=[np.number]).columns.drop('_year', errors='ignore')
-        
-        if self.features_to_impute is not None:
-            cols_to_impute = [col for col in self.features_to_impute if col in X.columns]
-        else:
-            cols_to_impute = X.select_dtypes(include=[np.number]).columns.drop('_year', errors='ignore')
-        
-        for col in cols_to_impute:
-            col_global_mean = X[col].mean()
-            
-            # If the global mean itself is NaN, fallback to 0
-            if pd.isna(col_global_mean):
-                col_global_mean = 0.0
-            
-            def safe_fill(x):
-                if x.isnull().all():
-                    return x.fillna(col_global_mean)  # use fallback global mean (guaranteed non-NaN now)
-                else:
-                    return x.fillna(x.mean())  # cross-sectional mean
-                
-            X[col] = X.groupby('_year')[col].transform(safe_fill)
-            
-        X = X.drop(columns=['_year'])
-        
-        return X
-
-
-class Winsorizer(BaseEstimator, TransformerMixin):
-    def __init__(self, lower=0.0025, upper=0.9975):
-        self.lower = lower
-        self.upper = upper
-    
-    def fit(self, X, y=None):
-        # Store quantiles for each column
-        X_df = pd.DataFrame(X)
-        self.lower_bounds_ = X_df.quantile(self.lower)
-        self.upper_bounds_ = X_df.quantile(self.upper)
-        return self
-
-    def transform(self, X):
-        X_df = pd.DataFrame(X).copy()
-        for col in X_df.columns:
-            X_df[col] = X_df[col].clip(lower=self.lower_bounds_[col],
-                                       upper=self.upper_bounds_[col])
-        return X_df.values  # return as numpy array for sklearn compatibility
-    
-    def get_feature_names_out(self, input_features=None):
-        return input_features if input_features is not None else []
-
-
 class _CompatRemainderColsList(list):
     """Fallback for loading sklearn<=1.6 ColumnTransformer pickles in sklearn>=1.8."""
 
@@ -105,12 +23,15 @@ def _ensure_sklearn_joblib_compatibility():
     import sys
     from sklearn.compose import _column_transformer
 
+    # Pipelines saved from the notebook pickle its custom classes under __main__; the same
+    # classes live in the stockpred package (the notebook's code mirrors it).
     main_module = sys.modules.get("__main__")
     if main_module is not None:
-        if not hasattr(main_module, "CrossSectionalMeanImputer"):
-            main_module.CrossSectionalMeanImputer = CrossSectionalMeanImputer
-        if not hasattr(main_module, "Winsorizer"):
-            main_module.Winsorizer = Winsorizer
+        from stockpred.nn import MLPEnsemble
+        from stockpred.preprocessing import MissingnessFilter, MonthlyCrossSectionalMeanImputer, Winsorizer
+        for cls in (MissingnessFilter, MonthlyCrossSectionalMeanImputer, Winsorizer, MLPEnsemble):
+            if not hasattr(main_module, cls.__name__):
+                setattr(main_module, cls.__name__, cls)
 
     if not hasattr(_column_transformer, "_RemainderColsList"):
         _column_transformer._RemainderColsList = _CompatRemainderColsList
@@ -244,33 +165,20 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Two result sets can be browsed: the corrected pipeline (built by build_dashboard_bundle.py) and
-# the original saved results, which used mis-timed factors and an annual imputer.
-RESULT_SOURCES = {
-    "Corrected pipeline (v2)": "output_corrected/dashboard",
-    "Original results (legacy, known timing issues)": "output_portfolios",
-}
-CORRECTED_LABEL, LEGACY_LABEL = list(RESULT_SOURCES)
+# Results shown by the dashboard: built by build_dashboard_bundle.py from the v2 pipeline runs.
+RESULTS_DIR = "output_corrected/dashboard"
 
 
-def _default_source_label():
-    return CORRECTED_LABEL if Path(RESULT_SOURCES[CORRECTED_LABEL], "returns_wide.csv").exists() else LEGACY_LABEL
-
-
-def active_source_label():
-    return st.session_state.get("results_source", _default_source_label())
-
-
-def corrected_model_index():
-    """{dashboard model name: {run, model, description}} for the corrected results ({} if absent)."""
+def model_index():
+    """{dashboard model name: {run, model, description}} ({} if the bundle is absent)."""
     import json
-    p = Path(RESULT_SOURCES[CORRECTED_LABEL]) / "models_index.json"
+    p = Path(RESULTS_DIR) / "models_index.json"
     return json.loads(p.read_text()) if p.exists() else {}
 
 
-def corrected_model_files(selected_model):
-    """{test year: path} of the per-year saved pipelines of a corrected-pipeline model."""
-    info = corrected_model_index().get(selected_model)
+def model_files(selected_model):
+    """{test year: path} of the per-year saved pipelines of a model."""
+    info = model_index().get(selected_model)
     if info is None:
         return {}
     folder = Path("output_corrected") / info["run"] / "models"
@@ -278,11 +186,9 @@ def corrected_model_files(selected_model):
 
 
 def select_model_path(selected_model, key):
-    """Path of the saved pipeline to inspect. The corrected pipeline refits every test year, so
-    those models get a year picker; the legacy models are a single file each."""
-    if active_source_label() == LEGACY_LABEL:
-        return f"models/{selected_model}.joblib"
-    files = corrected_model_files(selected_model)
+    """Path of the saved pipeline to inspect. The pipeline is refit every test year, so each model
+    gets a year picker."""
+    files = model_files(selected_model)
     if not files:
         st.warning("No saved pipelines found for this model. Re-run run_linear_backtest.py / run_nn_backtest.py "
                    "(saved models are not stored in git).")
@@ -294,8 +200,8 @@ def select_model_path(selected_model, key):
 
 # Cache data loading functions
 def load_data():
-    """Portfolio data for the result set chosen in the sidebar."""
-    return _load_data(RESULT_SOURCES[active_source_label()])
+    """Portfolio data (returns, portfolio stats, turnover) of the v2 pipeline."""
+    return _load_data(RESULTS_DIR)
 
 
 @st.cache_data
@@ -767,8 +673,8 @@ def intro_page():
         by obtaining accounting data from WRDS, creating the features, and then running code within this project with the input signal data replaced.
     - Is implementing this realistic? Is the performance here likely to be replicated in the future? And what about trading costs?
         - The predictive signals used here are curated from finance research but might 
-        be overfit to the past and underperform going forward. This dashboard only tests the models performance through Dec 31, 2020. Students can try these models 
-        on data from 2021-2023 to see if the performance is replicated.
+        be overfit to the past and underperform going forward. This dashboard only tests the models performance through Dec 31, 2019 (2020 is left unused and 2021 onward was never loaded, so it is a clean holdout). Students can try these models
+        on data from 2021 onward to see if the performance is replicated.
         - ["The Expected Returns on Machine-Learning Strategies" (2024, WP)](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4702406) by Azevedo, Hoegner, and 
     Velikov perform a similar analysis to this dashboard, and goes further to then compute how these portfolios would perform after factoring in trading costs,
     pre-publication overfitting, and post-decimalization era of high liquidity.
@@ -778,18 +684,16 @@ def intro_page():
     Students could add calculations to this dashboard to estimate the impact of trading costs on the portfolios.
     """)
     
-    if active_source_label() == CORRECTED_LABEL:
-        st.success(
-            "Showing the **corrected pipeline (v2)**: predictor factors are lagged one month, missing values are "
-            "filled with same-month cross-sectional means, all preprocessing and tuning use only earlier years, and "
-            "portfolios use a documented tie policy. Neural networks were trained on a within-month rank target "
-            "(5-seed averages). Caveats: equal-weighted quintiles, before transaction costs, no delisting returns, "
-            "and the strong results likely lean on microcaps and volatile stocks. Switch to the legacy results in "
-            "the sidebar to compare."
-        )
-        index = corrected_model_index()
-        if index:
-            st.markdown("\n".join(f"- **{k}**: {v['description']}" for k, v in index.items()))
+    st.success(
+        "Results come from the **corrected (v2) pipeline**: predictor factors are lagged one month, missing values "
+        "are filled with same-month cross-sectional means, all preprocessing and tuning use only earlier years, "
+        "and portfolios use a documented tie policy. Neural networks were trained on a within-month rank target "
+        "(5-seed averages). Caveats: equal-weighted quintiles, before transaction costs, no delisting returns, "
+        "and the strong results likely lean on microcaps and volatile stocks."
+    )
+    index = model_index()
+    if index:
+        st.markdown("\n".join(f"- **{k}**: {v['description']}" for k, v in index.items()))
 
     # Load and display some basic statistics
     try:
@@ -804,7 +708,7 @@ def intro_page():
         
     except Exception as e:
         st.error(f"Error loading data: {e}")
-        st.error("Please ensure the portfolio data files exist in the 'output_portfolios' directory.")
+        st.error("Please ensure the portfolio data files exist in the 'output_corrected/dashboard' directory (run build_dashboard_bundle.py).")
 
 # Compare models page content
 def compare_models_page():
@@ -1040,11 +944,12 @@ def compare_models_page():
             - This means that it can help identify the most important features in the data. 
             - For the purpose of prediction, Lasso and Ridge are often similar, as the underlying idea is the same: OLS, but with smaller coefficients.
             
-            Histogram Gradient Boosting (HGB):
-            - HGB is a type of ensemble learning method that builds multiple decision trees in a sequential manner.
-            - It is particularly effective for large datasets and can model complex relationships that are non-linear (e.g., interactions between features or non-linear relationships).
-            
+            RidgeCV and LassoCV:
+            - The penalty strength (alpha) is chosen using only the past: the training window's last three years are held out in turn, each time training on the years before it.
+            - Plain Ridge and Lasso with the default penalty (alpha = 1) are included as baselines.
+
             MLP (Multi-Layer Perceptron) aka Neural Network:
+            - The MLPs here predict each stock's rank of next-month return within its month (this worked better than predicting raw returns), use dropout, and average five randomly initialised networks.
             - MLP is a type of neural network that consists of multiple layers of interconnected nodes (neurons).
             - A punchy one-liner is that it is a "black box" model that can learn complex relationships in the data.
             - NNs are powerful and flexible, but they require careful tuning of hyperparameters and can be prone to overfitting.
@@ -1055,7 +960,7 @@ def compare_models_page():
                 
     except Exception as e:
         st.error(f"An error occurred: {e}")
-        st.error("Please make sure the portfolio data files exist in the 'output_portfolios' directory.")
+        st.error("Please make sure the portfolio data files exist in the 'output_corrected/dashboard' directory (run build_dashboard_bundle.py).")
 
 # Model details page content
 def model_details_page():
@@ -1423,7 +1328,7 @@ def model_details_page():
                     
     # except Exception as e:
     #     st.error(f"An error occurred: {e}")
-    #     st.error("Please make sure the portfolio data files exist in the 'output_portfolios' directory.")
+    #     st.error("Please make sure the portfolio data files exist in the 'output_corrected/dashboard' directory (run build_dashboard_bundle.py).")
 
 # Navigation sidebar
 def sidebar_navigation():
@@ -1432,12 +1337,6 @@ def sidebar_navigation():
         "Go to:",
         ["Introduction", "Background & Methods", "Compare Models", "Dig into a Model"]
     )
-    labels = [l for l in RESULT_SOURCES if Path(RESULT_SOURCES[l], "returns_wide.csv").exists()]
-    if len(labels) > 1:
-        st.sidebar.radio("Results shown", labels, index=labels.index(_default_source_label()), key="results_source")
-    if active_source_label() == LEGACY_LABEL:
-        st.sidebar.warning("Legacy results: factors were not lagged one month and the imputer used annual means. "
-                           "Kept only for comparison.")
     return page
 
 import plotly.graph_objs as go
@@ -1871,19 +1770,20 @@ def background_page():
         
         st.header("Full Code Example")
         st.markdown("""
-        Below is the full Jupyter Notebook (available in the repo) that is behind creating and evaluating the models 
-        in the other pages on the site. This takes the ideas in this background section and 
-        implements them on real data. Their are extra features in the code to make working with such large data easier:
-        - Reducing the data size to make it easier to modify and explore
-        - Ability to train many models
-        - Models only train once; when they are in the output dataset, they will not be retrained
-        - More sophisticated data handling: Winsorizing and CrossSectionalImputation
-        - It is set up for executing a Neural Net model (but I did not run it!)
-                
+        Below is the full, self-contained Jupyter Notebook (available in the repo). It takes the ideas in this
+        background section and implements them on real data, and it mirrors the tested code that produced the
+        results on the other pages. Features that make working with such large data easier:
+        - A `DEV` switch that shrinks the data so you can modify and explore quickly
+        - Several models in one loop: OLS, Ridge, Lasso, their tuned versions (RidgeCV, LassoCV), and a neural net
+        - Every fit is saved as soon as it finishes, and finished fits are not retrained
+        - Careful data handling: same-month cross-sectional imputation, winsorizing and scaling that only learn from
+          the training years, tuning that only validates on later years, and checks of the one-month timing
+        - Portfolios with a fair treatment of ties, and HAC (Newey-West) t-statistics
+
         **The notebook also shows you how to design and train models to produce your own
         predictive signals.**
-        
-        Running it takes a day or so and a decent amount of RAM. For more details, read the [README.md file in the repo](https://github.com/donbowen/StockPredictionAndEval).
+
+        Running it takes hours and a decent amount of RAM. For more details, read the [README.md file in the repo](https://github.com/donbowen/StockPredictionAndEval).
         
         ---
         """)

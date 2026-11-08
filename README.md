@@ -18,7 +18,7 @@ Financial markets generate vast amounts of data, but extracting actionable insig
 
 - **State-of-the-art input data**: CRSP for stock returns, OpenAssetPricing for predictive signals
 - **Prediction models**: 
-  - Included here: Ridge, Lasso, RidgeCV, LassoCV, and Histogram-based Gradient Boosting
+  - Included here: OLS, Ridge, Lasso, RidgeCV, LassoCV, and PyTorch neural nets (MLPs)
   - Can easily be expanded to any other model that can be integrated into `sklearn` pipelines
 - **Out-of-sample validation**: Rolling training and testing to prevent look-ahead bias
 - **Portfolio construction**: Creation of long-short portfolios based on model predictions
@@ -34,16 +34,19 @@ StockPredictorProject/
 │   └── config.toml             # Streamlit theme configuration
 ├── input_data/                 # Input data (not tracked by git)
 │   └── crsp_data.csv           # CRSP return data
-├── models/                     # Saved ML model files
-├── output_portfolios/          # Generated portfolio returns and statistics
-│   ├── port_stats_tall.csv     # Portfolio statistics in tall format
-│   └── returns_wide.csv        # Portfolio returns in wide format
-├── predictions/                # Model predictions
-│   └── prediction_output.csv   # Out-of-sample predictions
+├── output_corrected/           # Results of the package runs (what the dashboard shows)
+│   ├── linear_v1/              # OLS, Ridge(CV), Lasso(CV): config, per-fit metadata, results tables
+│   ├── nn_v1/                  # MLP ensembles
+│   └── dashboard/              # Files the dashboard reads (built by build_dashboard_bundle.py)
+├── stockpred/                  # Tested package: data, preprocessing, tuning, portfolios, evaluation, MLPs
+├── tests/                      # Unit tests (python -m pytest tests)
 ├── README.md                   # This file
-├── stock_prediction_and_eval.ipynb  # Main Jupyter notebook for analysis
-├── streamlit_app.py            # Streamlit dashboard for single model exploration
-└── streamlit_app2.py           # Enhanced multi-page Streamlit dashboard
+├── stock_prediction_and_eval.ipynb  # Self-contained walkthrough notebook (mirrors the package)
+├── run_linear_backtest.py      # Reproduce the linear-model results
+├── run_nn_screen.py            # Neural-net design screen
+├── run_nn_backtest.py          # Reproduce the neural-net results
+├── build_dashboard_bundle.py   # Build the dashboard's input files
+└── streamlit_app.py            # Streamlit dashboard
 ```
 
 ## Dependencies
@@ -51,7 +54,7 @@ StockPredictorProject/
 This project requires the following Python packages:
 
 - **Core Data Science**: pandas, numpy, matplotlib, seaborn
-- **Machine Learning**: scikit-learn, statsmodels
+- **Machine Learning**: scikit-learn, statsmodels, PyTorch
 - **Finance**: pandas-datareader, openassetpricing
 - **Visualization**: matplotlib, seaborn
 - **Dashboard**: streamlit
@@ -88,18 +91,21 @@ This project requires the following Python packages:
 
 ### Running the Analysis
 
-To run the full analysis pipeline, open and run the Jupyter notebook (`stock_prediction_and_eval.ipynb`). This will:
-1. Load and preprocess the data
-2. Train various machine learning models
-3. Generate out-of-sample predictions
-4. Create and evaluate portfolios
-5. Save results to the output directories
+To walk through the full analysis, open and run the Jupyter notebook (`stock_prediction_and_eval.ipynb`). It is
+self-contained and:
+1. Loads and preprocesses the data (signals measured in month *t* predict month *t+1*)
+2. Trains OLS, Ridge, RidgeCV, Lasso, LassoCV and a neural net, expanding the training window year by year
+3. Generates out-of-sample predictions (saved per model and year)
+4. Creates and evaluates portfolios (tie-aware quintiles, HAC alphas, turnover)
+5. Saves results to `output_notebook/`
 
+Set `DEV = True` in its first code cell for a quick end-to-end check on a small sample. A full run takes hours
+and a lot of RAM.
 
-### Corrected linear-model backtest (v2 pipeline)
+### Package runs (v2 pipeline)
 
-The implementation lives in the `stockpred/` package; `stock_prediction_and_eval.ipynb` is a thin driver around it and
-the original notebook is kept in `legacy/` (its outputs remain in `output_portfolios/` for comparison).
+The notebook's code mirrors the tested `stockpred/` package, which produced the results in `output_corrected/` that the
+dashboard shows (the first version of the pipeline had timing and leakage problems and has been removed).
 
 Reproduce everything (smoke test, OLS, Ridge/RidgeCV/Lasso/LassoCV, evaluation) with one command:
 
@@ -120,9 +126,9 @@ python run_nn_backtest.py                # three 5-seed MLP ensembles, 2000-2019
 python build_dashboard_bundle.py         # writes output_corrected/dashboard/ for the Streamlit app
 ```
 
-The dashboard shows the corrected results by default (sidebar switch for the legacy results). Its model-pipeline and
-variable-importance tabs load the per-year saved pipelines, so run the backtests locally first; saved models are
-not stored in git.
+The dashboard's model-pipeline and variable-importance tabs load the per-year saved pipelines, so run the backtests
+locally first; saved models are not stored in git. (To browse a notebook run instead, set `RESULTS_DIR` in
+`streamlit_app.py` to its folder and write a `models_index.json` like the one in `output_corrected/dashboard/`.)
 
 ### Running the Dashboard
 

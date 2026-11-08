@@ -1,4 +1,4 @@
-"""Dashboard support for the corrected-pipeline results (skips when the local outputs are absent)."""
+"""Dashboard support for the v2 results (skips when the local outputs are absent)."""
 import unittest
 from pathlib import Path
 
@@ -6,12 +6,12 @@ import numpy as np
 import pandas as pd
 import torch
 
-from streamlit_app import (RESULT_SOURCES, CORRECTED_LABEL, get_feature_importance_details, load_model_pipeline,
+from streamlit_app import (RESULTS_DIR, get_feature_importance_details, load_model_pipeline,
                            _get_torch_ensemble_feature_importances)
 from stockpred.nn import MLPEnsemble, MLPSpec, build_net
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-BUNDLE = REPO_ROOT / RESULT_SOURCES[CORRECTED_LABEL]
+BUNDLE = REPO_ROOT / RESULTS_DIR
 
 
 class TorchEnsembleImportanceTests(unittest.TestCase):
@@ -34,7 +34,7 @@ class TorchEnsembleImportanceTests(unittest.TestCase):
 
 @unittest.skipUnless(BUNDLE.exists(), "corrected dashboard bundle not built")
 class BundleSchemaTests(unittest.TestCase):
-    def test_bundle_matches_legacy_schema_and_has_dashboard_safe_names(self):
+    def test_bundle_has_dashboard_schema_and_dashboard_safe_names(self):
         rw = pd.read_csv(BUNDLE / "returns_wide.csv")
         cols = [c for c in rw.columns if c.startswith("ret_")]
         models = {c.split("_")[1] for c in cols}                     # how the app parses model names
