@@ -255,6 +255,15 @@ def _load_data(source_dir):
     return returns_wide_df, port_stats_tall_df, turnover_df
 
 @st.cache_data
+def load_costs(source_dir=RESULTS_DIR):
+    """Monthly long-short returns before and after trading costs (built by build_dashboard_bundle.py), or None."""
+    p = Path(source_dir) / "costs.csv"
+    if not p.exists():
+        return None
+    return pd.read_csv(p, parse_dates=['date']).set_index('date')
+
+
+@st.cache_data
 def load_factors():
     """Load Fama-French factors for regression analysis"""
     start = '1964-01-01'
@@ -543,51 +552,47 @@ def create_ls_comparison_chart_plotly(returns_wide_df, models):
     
     # Rename columns for better readability
     plot_df.columns = [col.split('_')[1] for col in plot_df.columns]
-    
+    plot_df.index.name = 'Date'
+    log_scale = plot_df.max().max() > 50
+
     # Convert to long format for Plotly Express
-    plot_df_long = plot_df.reset_index().melt(
-        id_vars='index',
-        var_name='Model',
-        value_name='Return'
-    )
-        
-    # Create the figure with Plotly Express
-    fig = px.line(
-        plot_df_long, 
-        x='index', 
-        y='Return', 
-        color='Model',
-        title='Comparison of Long-Short Portfolio Returns Across Models',
-        color_discrete_sequence=px.colors.sequential.Viridis,
-        height=600
-    )
-        
-    # Improve layout
-    fig.update_layout(
-        xaxis_title='Date',
-        yaxis_title='',
-        legend_title='Model',
-        hovermode='x unified',
-        legend=dict(
-            orientation="v",
-            yanchor="top",
-            y=0.99,
-            xanchor="left",
-            x=0.01
-        )
-    )
-        
-    # If max in the plot_df is greater than 50, log scale the y-axis
-    if plot_df.max().max() > 50:
-        fig.update_yaxes(type="log")
-        
-        # Format y-axis ticks to be more readable in log scale
-        fig.update_yaxes(
-            tickvals=[1, 2, 5, 10, 20, 50, 100, 200, 500, 1000],
-            ticktext=["1", "2", "5", "10", "20", "50", "100", "200", "500", "1000"]
-        )
-            
+    plot_df_long = plot_df.reset_index().melt(id_vars='Date', var_name='Model', value_name='Value of $1')
+
+    colors = model_colors(plot_df.columns)
+    fig = px.line(plot_df_long, x='Date', y='Value of $1', color='Model', color_discrete_map=colors,
+                  log_y=log_scale, height=600, template='plotly_white')
+    fig.update_traces(line=dict(width=2.2), hovertemplate='%{y:,.1f}')
+    fig.update_layout(showlegend=False, hovermode='x unified', margin=dict(l=10, r=190, t=20, b=10),
+                      yaxis_title='Value of $1 invested', xaxis_title='')
+    if log_scale:
+        ticks = [v for v in [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000] if v <= plot_df.max().max() * 2]
+        fig.update_yaxes(tickvals=ticks, ticktext=[f"{v:,}" for v in ticks])
+
+    # Label each line at its end, nudging labels apart so they don't overlap
+    end = plot_df.iloc[-1].astype(float)
+    pos = np.log10(end) if log_scale else end
+    lo, hi = (np.log10(plot_df.min().min()), np.log10(plot_df.max().max())) if log_scale else (plot_df.min().min(), plot_df.max().max())
+    gap = 0.045 * (hi - lo)
+    pos = pos.sort_values()
+    for i in range(1, len(pos)):
+        pos.iloc[i] = max(pos.iloc[i], pos.iloc[i - 1] + gap)
+    for model, y in pos.items():
+        fig.add_annotation(x=plot_df.index[-1], y=y, text=f"<b>{model}</b>", showarrow=False, xanchor='left',
+                           xshift=8, font=dict(color=colors[model], size=13))
     return fig, None
+
+
+# One fixed, easy-to-tell-apart color per model, so a model keeps its color whatever else is selected
+MODEL_COLORS = {
+    "OLS": "#1F77B4", "LassoCV": "#9467BD", "MLP-rank-256-128-64": "#D62728", "HGB-return": "#2CA02C",
+    "HGB-quintile": "#FF7F0E", "Ridge": "#17BECF", "RidgeCV": "#8C564B", "Lasso": "#BCBD22",
+    "MLP-rank-128-64": "#E377C2", "MLP-huber-128-64": "#7F7F7F", "OLS-rank": "#222222", "HGB-rank": "#00695C",
+}
+
+
+def model_colors(models):
+    spare = iter(px.colors.qualitative.Dark24)
+    return {m: MODEL_COLORS.get(m) or next(spare) for m in models}
 
 def calculate_multi_model_table_1(returns_wide_df, models, ff_factors):
     """Calculate Table 1 regression results for multiple models' LS portfolios"""
@@ -659,8 +664,7 @@ def intro_page():
     - View long-short portfolio performance across multiple models
     - Analyze risk-adjusted returns and factor exposures
     - Compare alphas across different factor models
-    - View turnover analysis for each portfolio
-    - Compare Sharpe ratios for different models
+    - Compare Sharpe ratios, turnover, and performance after trading costs
     
     **3. Detailed model analysis**
     - Examine cumulative returns for individual portfolios
@@ -711,14 +715,16 @@ def intro_page():
     They find that these factors erode 57% of the performance of the machine learning models. Still, they find ML strategies are portfitable and
     have an expected gross Sharpe Ratio of 0.94, which drops to 0.84, net of expenses. For comparison, the historical average Sharpe Ratio 
     of the S&P 500 is about 0.43.    
-    Students could add calculations to this dashboard to estimate the impact of trading costs on the portfolios.
+    The "Additional Metrics" tab on the Compare Models page shows a simple version for the models here: performance after paying
+    the bid-ask spread, and when trading only the most liquid stocks.
     """)
     
     st.success(
         "**How the results are built:** predictor factors are lagged one month, missing values are filled with "
         "same-month cross-sectional means, all preprocessing and tuning use only earlier years, and tied predictions "
-        "are split evenly across portfolios. Caveats: equal-weighted quintiles, before transaction costs, no delisting "
-        "returns, and the strong results likely lean on microcaps and volatile stocks."
+        "are split evenly across portfolios. Caveats: equal-weighted quintiles, no delisting returns, results are before "
+        "transaction costs except where noted, and the strong results lean on small, illiquid stocks (see the cost "
+        "tables in Compare Models)."
     )
     index = model_index()
     if index:
@@ -765,7 +771,7 @@ def compare_models_page():
             return
 
         # Create tabs
-        tab1, tab2, tab3, tab_list, tab4 = st.tabs(["Cumulative Returns Comparison", "Risk-Adjusted Returns via Regression Analysis", "Additional Metrics", "Models on This Site", "About the Models"])
+        tab1, tab2, tab3, tab_list = st.tabs(["Cumulative Returns Comparison", "Risk-Adjusted Returns via Regression Analysis", "Additional Metrics", "Models on This Site"])
 
         # Tab 1: Cumulative Returns Comparison
         with tab1:
@@ -776,8 +782,6 @@ def compare_models_page():
             The Long-Short strategy involves buying the highest-ranked stocks (Portfolio 5) and shorting 
             the lowest-ranked stocks (Portfolio 1) for each model. If a model has a high t-stat, then the prediction model 
             is doing a good job of sorting stocks to buy and short compared to the factors in the regression model.
-            
-            These alphas are in percent and are monthly. To annualize, multiply by 12 (close and good enough).
             """)
             
 
@@ -902,56 +906,80 @@ def compare_models_page():
                         
         with tab3:
             st.header("Additional Performance Metrics about the Long-Short Portfolios")
-                        
-            metrics = {}
-            for model in selected_models:
-                # Find LS column
-                ls_col = [col for col in returns_wide_df.columns if f'ret_{model}_binLS' in col]
-                if ls_col:
-                    ls_data = returns_wide_df[ls_col[0]]
-                    metrics[model] = {
-                        'Mean Monthly Return (%)': ls_data.mean() * 100,
-                        'Std Dev (%)': ls_data.std() * 100,
-                        'Sharpe Ratio (Annualized)': (ls_data.mean() / ls_data.std()) * np.sqrt(12),
-                        'Max Drawdown (%)': (1 - (1+ls_data).cumprod() / (1+ls_data).cumprod().cummax()).max() * 100
-                    }
-            
-            if metrics:
-                metrics_df = pd.DataFrame(metrics).T
-                st.dataframe(metrics_df.style.format('{:.4f}'))
+
+            costs_df = load_costs()
+            if costs_df is None:
+                st.error("costs.csv is missing from output_corrected/dashboard (run build_dashboard_bundle.py with the input data).")
             else:
-                st.error(error_msg)
-                
-            st.header("Turnover Analysis")
-            
-            st.markdown("""
-            This table shows the average turnover for each portfolio bin across the selected models.
-            It shows the share of each portfolio, by weight, that is newly bought or held over from last month.
-            Each portfolio's weights sum to one every month, so the weight sold always equals the weight bought.
-            """)
+                start = st.radio("Sample starts in:", [2000, 2005, 2010], horizontal=True, key='metrics_start')
+                show = lambda case: st.dataframe(long_short_metrics(costs_df, selected_models, case, start)
+                                                 .style.format('{:.1f}').format('{:.2f}', subset=['Sharpe ratio']))
 
-            _, _, turnover_df = load_data()
-            turnover_df = turnover_df[turnover_df['model'].isin(selected_models)]
-            turnover_df = turnover_df.set_index(['model', 'bin'])[['% buy', '% hold']].groupby(level=['model','bin']).mean()
-            # turnover_df.columns = [c.title() for c in turnover_df.columns]
+                st.markdown("""
+                Long-short portfolios of all stocks, before trading costs. The sample ends in December 2019.
+                - **Turnover** is the share of each leg traded in a month, one way. 100% means the whole leg was replaced.
+                  Each month's trades start from last month's weights after they drifted with returns, so even a stock that
+                  stays in the portfolio is traded a little to bring it back to equal weight.
+                - **Short in illiquid** is the share of the short leg in the 20% of stocks with the lowest dollar
+                  trading volume that month. These are the stocks that are hardest and most expensive to short.
+                """)
+                show("All stocks, before costs")
 
-            # user decides if they want to see % buy or % hold
-            st.selectbox("Select turnover type to display:", options=[ '% hold', '% buy'], index=0, key='turnover_type')
-            turnover_type = st.session_state['turnover_type']
-            
-            show_turnover = turnover_df[turnover_type].unstack(level=-1)
-            
-            # turnover_df = turnover_df.unstack(level=-1)
-            
-            st.dataframe(show_turnover.style.format("{:.1%}"), use_container_width=False)
-            
-        with tab4:
-            st.header("About the Models")
-            
-            st.markdown("""
-            This section provides a brief overview of the models used in this analysis.
-            
-            
+                st.subheader("Performance with transaction costs")
+                st.markdown("""
+                The same portfolios, now paying half the bid-ask spread on every dollar traded, in both legs.
+                - The spread for each stock is Open Asset Pricing's estimate from daily high and low prices (Corwin and
+                  Schultz, 2012), measured before the month starts. Estimates like this tend to overstate the spreads of
+                  liquid stocks, especially after 2005, so these costs are likely too high for those stocks.
+                - Nothing else is charged: no price impact from trading large amounts, no fees for borrowing the stocks that
+                  are shorted, and no allowance for stocks that can't be borrowed at all.
+                """)
+                show("All stocks, after costs")
+
+                st.subheader("Performance with cost mitigation")
+                st.markdown("""
+                One simple way to cut costs: use only the most liquid 20% of stocks each month, ranked by dollar trading
+                volume, and charge the same half-spread costs. The model's predictions are sorted into quintiles within
+                that group. The short leg has no illiquid stocks by construction.
+                """)
+                show("Most liquid 20%, after costs")
+
+        with tab_list:
+            models_on_this_site()
+
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
+        st.error("Please make sure the portfolio data files exist in the 'output_corrected/dashboard' directory (run build_dashboard_bundle.py).")
+
+
+def models_on_this_site():
+    st.header("Models on This Site")
+
+    st.markdown("""
+    Every model below uses the same data and timeline. It is retrained each year from 2000 to 2019 on all earlier
+    years, using the same predictors and preprocessing, and its predictions are sorted into the same 5 portfolios.
+    The models differ in what they try to predict and how flexible they are.
+
+    These are all of the models that the site can show. Use the box at the top of this page to choose the ones to compare.
+    """)
+
+    header = {"Family": '<a href="#about-the-estimators" target="_self">Estimator Family</a>',
+              "Predicts": '<a href="#what-is-the-target" target="_self">Predicts (Target)</a>'}
+    rows = [{"Model": name, **MODEL_GUIDE.get(name, {"What it is": info["description"]})} for name, info in model_index().items()]
+    table = pd.DataFrame(rows).fillna("").rename(columns=header)
+    st.markdown(table.to_html(index=False, escape=False, border=0, classes="model-guide"), unsafe_allow_html=True)
+    st.markdown("<style>table.model-guide {width: 100%;} table.model-guide th {text-align: left;}</style>",
+                unsafe_allow_html=True)
+
+    st.markdown("""
+    **Choosing the designs**
+    - The penalties in RidgeCV and LassoCV, and the number of training rounds in the neural nets and HGB models, are chosen each year using only the last three years of the training window.
+    - The HGB settings (other than the number of trees) were fixed before seeing any results.
+    - The neural net designs were chosen by comparing several designs on rank correlation, validating on 2002-2004. That overlaps the first test years, so 2005 onward is the cleaner test of those designs.
+    """)
+
+    st.header("About the Estimators", anchor="about-the-estimators")
+    st.markdown("""
             OLS Linear Regression:
             - Ordinary Least Squares (OLS) regression is a statistical method used to estimate the relationships between variables.
             - It is the O.G. and the most basic linear model.
@@ -990,38 +1018,36 @@ def compare_models_page():
             - Trees pick up non-linear patterns and interactions between variables on their own, and they don't care about the scale of a variable.
             - "Histogram" means that it groups each variable's values into buckets before looking for splits, which makes it fast enough for millions of rows.
             - The main risk is overfitting: more trees always fit the training data better. Here, the number of trees is chosen using the last three years of the training window.
-
-            What is the target?
-            - A model doesn't have to predict the return itself. Since we only use predictions to sort stocks, we can instead predict each stock's rank within its month, or which quintile it lands in.
-            - Those targets ignore how extreme an outlier is. A stock that rises 2,000% counts the same as the month's other top performers.
-            - See the "Models on This Site" tab for which target each model uses.
-
             """)
 
-        with tab_list:
-            st.header("Models on This Site")
+    st.subheader("What is the target?", anchor="what-is-the-target", divider="gray")
+    st.markdown("""
+    - A model doesn't have to predict the return itself. Since we only use predictions to sort stocks, we can instead predict each stock's rank within its month, or which quintile it lands in.
+    - Those targets ignore how extreme an outlier is. A stock that rises 2,000% counts the same as the month's other top performers.
+    - The "Predicts (Target)" column of the table above shows which target each model uses.
+    """)
 
-            st.markdown("""
-            Every model below uses the same data and timeline. It is retrained each year from 2000 to 2019 on all earlier
-            years, using the same predictors and preprocessing, and its predictions are sorted into the same 5 portfolios.
-            The models differ in what they try to predict and how flexible they are.
 
-            These are all of the models that the site can show. Use the box at the top of this page to choose the ones to compare.
-            """)
-
-            rows = [{"Model": name, **MODEL_GUIDE.get(name, {"What it is": info["description"]})} for name, info in model_index().items()]
-            st.table(pd.DataFrame(rows).fillna("").set_index("Model"))   # st.table wraps long descriptions
-
-            st.markdown("""
-            **Choosing the designs**
-            - The penalties in RidgeCV and LassoCV, and the number of training rounds in the neural nets and HGB models, are chosen each year using only the last three years of the training window.
-            - The HGB settings (other than the number of trees) were fixed before seeing any results.
-            - The neural net designs were chosen by comparing several designs on rank correlation, validating on 2002-2004. That overlaps the first test years, so 2005 onward is the cleaner test of those designs.
-            """)
-
-    except Exception as e:
-        st.error(f"An error occurred: {e}")
-        st.error("Please make sure the portfolio data files exist in the 'output_corrected/dashboard' directory (run build_dashboard_bundle.py).")
+def long_short_metrics(costs_df, models, case, start_year):
+    """Long-short performance, turnover and illiquid shorts of each model, for one cost case (see costs.csv)."""
+    rows = {}
+    for m in models:
+        d = costs_df[(costs_df['model'] == m) & (costs_df['case'] == case) & (costs_df.index.year >= start_year)]
+        if d.empty:
+            continue
+        r = d['ls']
+        wealth = pd.concat([pd.Series([1.0]), (1 + r).cumprod().reset_index(drop=True)])
+        first = d.index.year.min() == 2000          # no trades are counted in the very first month
+        rows[m] = {
+            'Mean (%/yr)': 1200 * r.mean(),
+            'Std. dev. (%/yr)': 100 * np.sqrt(12) * r.std(),
+            'Sharpe ratio': np.sqrt(12) * r.mean() / r.std(),
+            'Max drawdown (%)': 100 * (1 - wealth / wealth.cummax()).max(),
+            'Turnover long (%/mo)': 100 * d['turnover_long'].iloc[int(first):].mean(),
+            'Turnover short (%/mo)': 100 * d['turnover_short'].iloc[int(first):].mean(),
+            'Short in illiquid (%)': 100 * d['short_illiquid'].mean(),
+        }
+    return pd.DataFrame(rows).T
 
 # Model details page content
 def model_details_page():

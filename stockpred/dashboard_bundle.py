@@ -48,7 +48,62 @@ def weight_turnover(df: pd.DataFrame, wn: np.ndarray, nport: int = NPORT) -> pd.
     return pd.concat(rows, ignore_index=True)
 
 
-def build_bundle(out_root: Path, out_dir: Path, years: list[int]) -> dict:
+LIQUID_SHARE = 0.20      # "most liquid 20%" universe, and "illiquid" = least liquid 20%, by dollar volume each month
+COST_CASES = ["All stocks, before costs", "All stocks, after costs", "Most liquid 20%, after costs"]
+
+
+def cost_inputs(panel: pd.DataFrame) -> pd.DataFrame:
+    """Per stock-month half-spread and liquidity rank, from data known before the month starts.
+    BidAskSpread is Open Asset Pricing's Corwin-Schultz estimate (as a fraction of price), DolVol is minus the log of
+    dollar volume. Missing spreads get the month's median; missing dollar volume counts as least liquid."""
+    c = panel[["permno", "date"]].copy()
+    spread = panel["BidAskSpread"].fillna(panel.groupby("date")["BidAskSpread"].transform("median"))
+    c["half_spread"] = spread.to_numpy() / 2
+    c["liq_pct"] = (-panel["DolVol"]).groupby(panel["date"]).rank(pct=True).fillna(0.0).to_numpy()
+    return c
+
+
+def _wide(pred: pd.DataFrame, values) -> pd.DataFrame:
+    return pd.DataFrame({"date": pred["date"].to_numpy(), "permno": pred["permno"].to_numpy(), "v": values}) \
+        .pivot(index="date", columns="permno", values="v")
+
+
+def leg_trading(pred: pd.DataFrame, w: np.ndarray):
+    """One-way turnover and half-spread cost of one leg, by month. Each month the leg trades from last month's
+    weights, after they drifted with returns, to this month's weights. Nothing is charged in the first month."""
+    W = _wide(pred, w).fillna(0.0)
+    R = _wide(pred, pred["ret"].to_numpy()).fillna(0.0).to_numpy()
+    C = _wide(pred, pred["half_spread"].to_numpy()).ffill()        # a stock that left is sold at its last spread
+    C = C.T.fillna(C.median(axis=1)).T.to_numpy()
+    grown = W.to_numpy() * (1 + R)
+    before = np.vstack([W.to_numpy()[:1], (grown / grown.sum(1, keepdims=True))[:-1]])
+    traded = np.abs(W.to_numpy() - before)
+    return pd.Series(traded.sum(1) / 2, index=W.index), pd.Series((traded * C).sum(1), index=W.index)
+
+
+def ls_with_costs(pred: pd.DataFrame, col: str) -> pd.DataFrame:
+    """Long-short return before and after half-spread costs, turnover of each leg, and the share of the
+    short leg in the least liquid stocks."""
+    W, _ = bin_weights(pred, col, NPORT)
+    wide, _, wn = portfolio_returns(pred, W, NPORT)
+    turn_long, cost_long = leg_trading(pred, wn[:, NPORT - 1])
+    turn_short, cost_short = leg_trading(pred, wn[:, 0])
+    illiquid = pd.Series(wn[:, 0] * (pred["liq_pct"].to_numpy() <= LIQUID_SHARE)).groupby(pred["date"].to_numpy()).sum()
+    return pd.DataFrame({"gross": wide["LS"], "net": wide["LS"] - cost_long - cost_short, "turnover_long": turn_long,
+                         "turnover_short": turn_short, "short_illiquid": illiquid.to_numpy()})
+
+
+def cost_table(pred: pd.DataFrame, dash: str) -> pd.DataFrame:
+    col = f"pred_{dash}"
+    every = ls_with_costs(pred, col)
+    liquid = ls_with_costs(pred[pred["liq_pct"] > 1 - LIQUID_SHARE].reset_index(drop=True), col)
+    out = []
+    for case, df, ret in zip(COST_CASES, [every, every, liquid], ["gross", "net", "net"]):
+        out.append(df.drop(columns=["gross", "net"]).assign(ls=df[ret], case=case, model=dash))
+    return pd.concat(out).rename_axis("date").reset_index()
+
+
+def build_bundle(out_root: Path, out_dir: Path, years: list[int], costs: pd.DataFrame | None = None) -> dict:
     out_dir.mkdir(parents=True, exist_ok=True)
     runs = sorted({r for r, _, _ in MODELS.values()})
     preds = {}
@@ -86,6 +141,15 @@ def build_bundle(out_root: Path, out_dir: Path, years: list[int]) -> dict:
     tall[["model", "bin", "date", "ret", "std", "nfirms"]].to_csv(out_dir / "port_stats_tall.csv", index=False)
     pd.concat(turns, ignore_index=True)[["model", "bin", "date", "% buy", "% sell", "% hold"]].to_csv(
         out_dir / "turnover.csv", index=False)
+    if costs is not None:
+        pred = pred.merge(costs, on=key, how="left", validate="1:1")
+        assert pred[["half_spread", "liq_pct"]].notna().all().all(), "cost inputs missing for some stock-months"
+        tables = [cost_table(pred, dash) for dash in MODELS]
+        for t in tables:
+            g = t[t["case"] == COST_CASES[0]].set_index("date")["ls"]
+            assert np.allclose(g.to_numpy(), returns_wide[f"ret_{t['model'].iloc[0]}_binLS"].to_numpy(), atol=1e-12)
+        pd.concat(tables, ignore_index=True)[["model", "case", "date", "ls", "turnover_long", "turnover_short",
+                                              "short_illiquid"]].to_csv(out_dir / "costs.csv", index=False)
     index = {d: {"run": r, "model": m, "description": desc} for d, (r, m, desc) in MODELS.items()}
     (out_dir / "models_index.json").write_text(json.dumps(index, indent=1))
     return index

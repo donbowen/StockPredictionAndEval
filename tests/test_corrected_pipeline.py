@@ -234,3 +234,18 @@ def test_hgb_targets_and_saved_model_match_the_chosen_round():
 
 def test_newey_west_lag_rule():
     assert newey_west_lags(240) == 4
+
+
+# ------------------------------------------------------------ trading costs ---
+def test_leg_trading_charges_half_spread_on_drifted_weights():
+    from stockpred.dashboard_bundle import leg_trading
+    d = pd.to_datetime(["2001-01-28", "2001-01-28", "2001-02-28", "2001-02-28"])
+    pred = pd.DataFrame({"date": d, "permno": [1, 2, 1, 3], "ret": [1.0, 0.0, 0.0, 0.0],
+                         "half_spread": [0.01, 0.02, 0.01, 0.03]})
+    # January: equal weights in stocks 1 and 2. Stock 1 doubles, so before February's trades it is 2/3 of the leg.
+    # February: half in stock 1, half in new stock 3: sell 1/6 of stock 1, all 1/3 of stock 2, buy 1/2 of stock 3.
+    turnover, cost = leg_trading(pred, np.array([0.5, 0.5, 0.5, 0.5]))
+    assert turnover.iloc[0] == 0 and cost.iloc[0] == 0
+    assert turnover.iloc[1] == pytest.approx(0.5)
+    # stock 2 left the sample, so it is sold at its last known spread
+    assert cost.iloc[1] == pytest.approx(0.01 / 6 + 0.02 / 3 + 0.03 / 2)
