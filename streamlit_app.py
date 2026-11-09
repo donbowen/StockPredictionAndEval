@@ -912,8 +912,12 @@ def compare_models_page():
                 st.error("costs.csv is missing from output_corrected/dashboard (run build_dashboard_bundle.py with the input data).")
             else:
                 start = st.radio("Sample starts in:", [2000, 2005, 2010], horizontal=True, key='metrics_start')
-                show = lambda case: st.dataframe(long_short_metrics(costs_df, selected_models, case, start)
-                                                 .style.format('{:.1f}').format('{:.2f}', subset=['Sharpe ratio']))
+
+                def show(table):
+                    st.dataframe(table.style.format('{:.1f}', na_rep='').format('{:.2f}', subset=['Sharpe ratio']))
+
+                def show_ls(universe, returns):
+                    show(long_short_metrics(costs_df, selected_models, universe, start, returns))
 
                 st.markdown("""
                 Long-short portfolios of all stocks, before trading costs. The sample ends in December 2019.
@@ -923,7 +927,7 @@ def compare_models_page():
                 - **Short in illiquid** is the share of the short leg in the 20% of stocks with the lowest dollar
                   trading volume that month. These are the stocks that are hardest and most expensive to short.
                 """)
-                show("All stocks, before costs")
+                show_ls("All stocks", lambda d: d['ls_gross'])
 
                 st.subheader("Performance with transaction costs")
                 st.markdown("""
@@ -931,18 +935,45 @@ def compare_models_page():
                 - The spread for each stock is Open Asset Pricing's estimate from daily high and low prices (Corwin and
                   Schultz, 2012), measured before the month starts. Estimates like this tend to overstate the spreads of
                   liquid stocks, especially after 2005, so these costs are likely too high for those stocks.
-                - Nothing else is charged: no price impact from trading large amounts, no fees for borrowing the stocks that
-                  are shorted, and no allowance for stocks that can't be borrowed at all.
+                - **This estimate omits other costs**: price impact from trading large amounts, fees for borrowing the stocks
+                  that are shorted, and allowance for stocks that can't be borrowed at all.
                 """)
-                show("All stocks, after costs")
+                show_ls("All stocks", lambda d: d['ls_net'])
 
                 st.subheader("Performance with cost mitigation")
                 st.markdown("""
-                One simple way to cut costs: use only the most liquid 20% of stocks each month, ranked by dollar trading
-                volume, and charge the same half-spread costs. The model's predictions are sorted into quintiles within
-                that group. The short leg has no illiquid stocks by construction.
+                One simple way to cut costs: use only the most liquid 20% of stocks each month (about 880 stocks), ranked
+                by dollar trading volume. The model's predictions are sorted into quintiles within that group, so the short
+                leg has no illiquid stocks.
+
+                The high-low estimate above is a poor guide to what trading these stocks costs. It charges them about
+                25-30 bp each way after 2005, but estimates like it run 25-50 bp too high after 2003 compared with spreads
+                measured from intraday quotes (Chen and Velikov, 2023). The actual cost of trading large, heavily traded
+                stocks is a few basis points. So this table charges an assumed half-spread on every trade, plus a fee for
+                borrowing the stocks in the short leg. Change the assumptions to see how the results respond.
                 """)
-                show("Most liquid 20%, after costs")
+                c1, c2 = st.columns(2)
+                half_spread = c1.number_input("Half-spread, each way (basis points)", 0.0, 100.0, 5.0, 1.0,
+                                              key='liquid_half_spread') / 10000
+                borrow_fee = c2.number_input("Borrowing fee on the short leg (% per year)", 0.0, 10.0, 0.25, 0.25,
+                                             key='borrow_fee') / 100
+                st.caption("Spreads were wider before decimal prices (2001), so a few basis points understates costs in "
+                           "2000-2002. Most stocks cost less than 1% a year to borrow, and large ones typically about "
+                           "0.25% (D'Avolio, 2002). Stocks that are heavily shorted can cost much more.")
+                show_ls("Most liquid 20%", lambda d: d['ls_gross'] - 2 * half_spread * (d['turnover_long'] + d['turnover_short'])
+                        - borrow_fee / 12)
+
+                st.subheader("Long-only performance")
+                st.markdown("""
+                Many investors can't short at all. This table holds only the long leg: the top quintile of the most liquid
+                20% of stocks, paying the half-spread above. It is compared with the stock market (all US stocks,
+                value-weighted). The Sharpe ratio here uses returns above the T-bill rate.
+                """)
+                ff = load_factors()
+                rf = ff['RF'] / 100
+                market = ff['mkt_excess'] / 100 + rf
+                show(long_only_metrics(costs_df, selected_models, start,
+                                       lambda d: d['long_gross'] - 2 * half_spread * d['turnover_long'], market, rf))
 
         with tab_list:
             models_on_this_site()
@@ -1028,25 +1059,53 @@ def models_on_this_site():
     """)
 
 
-def long_short_metrics(costs_df, models, case, start_year):
-    """Long-short performance, turnover and illiquid shorts of each model, for one cost case (see costs.csv)."""
+def return_stats(r, rf=None):
+    """Annualized mean and volatility, Sharpe ratio (of returns above rf, if given) and max drawdown, in percent."""
+    excess = r - rf.reindex(r.index) if rf is not None else r
+    wealth = pd.concat([pd.Series([1.0]), (1 + r).cumprod().reset_index(drop=True)])
+    return {
+        'Mean (%/yr)': 1200 * r.mean(),
+        'Std. dev. (%/yr)': 100 * np.sqrt(12) * r.std(),
+        'Sharpe ratio': np.sqrt(12) * excess.mean() / excess.std(),
+        'Max drawdown (%)': 100 * (1 - wealth / wealth.cummax()).max(),
+    }
+
+
+def cost_rows(costs_df, model, universe, start_year):
+    """One model's months in costs.csv, and how many to skip when averaging turnover (nothing is traded in the
+    first month of the whole sample)."""
+    d = costs_df[(costs_df['model'] == model) & (costs_df['universe'] == universe) & (costs_df.index.year >= start_year)]
+    return d, int(not d.empty and d.index.min() == costs_df.index.min())
+
+
+def long_short_metrics(costs_df, models, universe, start_year, returns):
+    """Long-short performance, turnover and illiquid shorts of each model. returns(d) gives the monthly
+    long-short return from that model's rows of costs.csv."""
     rows = {}
     for m in models:
-        d = costs_df[(costs_df['model'] == m) & (costs_df['case'] == case) & (costs_df.index.year >= start_year)]
+        d, skip = cost_rows(costs_df, m, universe, start_year)
         if d.empty:
             continue
-        r = d['ls']
-        wealth = pd.concat([pd.Series([1.0]), (1 + r).cumprod().reset_index(drop=True)])
-        first = d.index.year.min() == 2000          # no trades are counted in the very first month
-        rows[m] = {
-            'Mean (%/yr)': 1200 * r.mean(),
-            'Std. dev. (%/yr)': 100 * np.sqrt(12) * r.std(),
-            'Sharpe ratio': np.sqrt(12) * r.mean() / r.std(),
-            'Max drawdown (%)': 100 * (1 - wealth / wealth.cummax()).max(),
-            'Turnover long (%/mo)': 100 * d['turnover_long'].iloc[int(first):].mean(),
-            'Turnover short (%/mo)': 100 * d['turnover_short'].iloc[int(first):].mean(),
-            'Short in illiquid (%)': 100 * d['short_illiquid'].mean(),
-        }
+        rows[m] = {**return_stats(returns(d)),
+                   'Turnover long (%/mo)': 100 * d['turnover_long'].iloc[skip:].mean(),
+                   'Turnover short (%/mo)': 100 * d['turnover_short'].iloc[skip:].mean(),
+                   'Short in illiquid (%)': 100 * d['short_illiquid'].mean()}
+    return pd.DataFrame(rows).T
+
+
+def long_only_metrics(costs_df, models, start_year, returns, market, rf):
+    """Long leg of the most liquid 20% of stocks, next to the market."""
+    rows = {}
+    for m in models:
+        d, skip = cost_rows(costs_df, m, "Most liquid 20%", start_year)
+        if d.empty:
+            continue
+        r = returns(d)
+        rows[m] = {**return_stats(r, rf), 'Turnover (%/mo)': 100 * d['turnover_long'].iloc[skip:].mean(),
+                   'Mean minus market (%/yr)': 1200 * (r - market.reindex(r.index)).mean()}
+    if rows:
+        months = r.index
+        rows['Stock market'] = {**return_stats(market.reindex(months), rf), 'Mean minus market (%/yr)': 0.0}
     return pd.DataFrame(rows).T
 
 # Model details page content

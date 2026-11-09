@@ -49,7 +49,7 @@ def weight_turnover(df: pd.DataFrame, wn: np.ndarray, nport: int = NPORT) -> pd.
 
 
 LIQUID_SHARE = 0.20      # "most liquid 20%" universe, and "illiquid" = least liquid 20%, by dollar volume each month
-COST_CASES = ["All stocks, before costs", "All stocks, after costs", "Most liquid 20%, after costs"]
+UNIVERSES = ["All stocks", "Most liquid 20%"]
 
 
 def cost_inputs(panel: pd.DataFrame) -> pd.DataFrame:
@@ -82,24 +82,23 @@ def leg_trading(pred: pd.DataFrame, w: np.ndarray):
 
 
 def ls_with_costs(pred: pd.DataFrame, col: str) -> pd.DataFrame:
-    """Long-short return before and after half-spread costs, turnover of each leg, and the share of the
-    short leg in the least liquid stocks."""
+    """Long-short and long-leg returns before and after half-spread costs, turnover of each leg, and the share
+    of the short leg in the least liquid stocks. Each leg trades twice its one-way turnover, so with a flat
+    half-spread s the cost of a leg is 2 * s * turnover."""
     W, _ = bin_weights(pred, col, NPORT)
     wide, _, wn = portfolio_returns(pred, W, NPORT)
     turn_long, cost_long = leg_trading(pred, wn[:, NPORT - 1])
     turn_short, cost_short = leg_trading(pred, wn[:, 0])
     illiquid = pd.Series(wn[:, 0] * (pred["liq_pct"].to_numpy() <= LIQUID_SHARE)).groupby(pred["date"].to_numpy()).sum()
-    return pd.DataFrame({"gross": wide["LS"], "net": wide["LS"] - cost_long - cost_short, "turnover_long": turn_long,
-                         "turnover_short": turn_short, "short_illiquid": illiquid.to_numpy()})
+    return pd.DataFrame({"ls_gross": wide["LS"], "ls_net": wide["LS"] - cost_long - cost_short,
+                         "long_gross": wide[NPORT], "long_net": wide[NPORT] - cost_long,
+                         "turnover_long": turn_long, "turnover_short": turn_short, "short_illiquid": illiquid.to_numpy()})
 
 
 def cost_table(pred: pd.DataFrame, dash: str) -> pd.DataFrame:
     col = f"pred_{dash}"
-    every = ls_with_costs(pred, col)
-    liquid = ls_with_costs(pred[pred["liq_pct"] > 1 - LIQUID_SHARE].reset_index(drop=True), col)
-    out = []
-    for case, df, ret in zip(COST_CASES, [every, every, liquid], ["gross", "net", "net"]):
-        out.append(df.drop(columns=["gross", "net"]).assign(ls=df[ret], case=case, model=dash))
+    liquid = pred[pred["liq_pct"] > 1 - LIQUID_SHARE].reset_index(drop=True)
+    out = [ls_with_costs(p, col).assign(universe=u, model=dash) for u, p in zip(UNIVERSES, [pred, liquid])]
     return pd.concat(out).rename_axis("date").reset_index()
 
 
@@ -146,10 +145,12 @@ def build_bundle(out_root: Path, out_dir: Path, years: list[int], costs: pd.Data
         assert pred[["half_spread", "liq_pct"]].notna().all().all(), "cost inputs missing for some stock-months"
         tables = [cost_table(pred, dash) for dash in MODELS]
         for t in tables:
-            g = t[t["case"] == COST_CASES[0]].set_index("date")["ls"]
-            assert np.allclose(g.to_numpy(), returns_wide[f"ret_{t['model'].iloc[0]}_binLS"].to_numpy(), atol=1e-12)
-        pd.concat(tables, ignore_index=True)[["model", "case", "date", "ls", "turnover_long", "turnover_short",
-                                              "short_illiquid"]].to_csv(out_dir / "costs.csv", index=False)
+            every, m = t[t["universe"] == UNIVERSES[0]], t["model"].iloc[0]
+            assert np.allclose(every["ls_gross"].to_numpy(), returns_wide[f"ret_{m}_binLS"].to_numpy(), atol=1e-12)
+            assert np.allclose(every["long_gross"].to_numpy(), returns_wide[f"ret_{m}_bin{NPORT}"].to_numpy(), atol=1e-12)
+        pd.concat(tables, ignore_index=True)[["model", "universe", "date", "ls_gross", "ls_net", "long_gross", "long_net",
+                                              "turnover_long", "turnover_short", "short_illiquid"]].to_csv(
+            out_dir / "costs.csv", index=False)
     index = {d: {"run": r, "model": m, "description": desc} for d, (r, m, desc) in MODELS.items()}
     (out_dir / "models_index.json").write_text(json.dumps(index, indent=1))
     return index
