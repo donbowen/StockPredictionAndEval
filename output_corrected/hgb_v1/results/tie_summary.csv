@@ -1,0 +1,7 @@
+model,months,no_dispersion_months,mean_share_in_ties
+HGB-quintile,240,0,0.0
+HGB-rank,240,0,2.5208945816703576e-05
+HGB-return,240,0,0.038839505276542306
+OLS,240,0,0.0
+OLS-rank,240,0,9.72432830501679e-05
+RidgeCV,240,0,0.0

@@ -8,7 +8,7 @@ seaborn>=0.11.0
 plotly>=5.3.0
 
 # Machine learning
-scikit-learn>=1.0.0
+scikit-learn==1.6.1    # the saved models in output_corrected/*/models/ were made with this version and don't load on the latest one
 statsmodels>=0.13.0
 torch>=2.0.0
 

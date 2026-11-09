@@ -1,0 +1,62 @@
+{
+ "model": "HGB-return",
+ "year": 2018,
+ "config_hash": "b802eb9c833234ae",
+ "panel_key": "511a88310dcbe676",
+ "code_hash": "cd9cd4d9e86b7195",
+ "train_start": "1975-01-28",
+ "train_end": "2014-12-28",
+ "val_start": "2015-01-28",
+ "val_end": "2017-12-28",
+ "test_start": "2018-01-28",
+ "test_rows": 48774,
+ "n_features": 263,
+ "pred_std": 1.5483655710653743,
+ "seconds": {
+  "shared_preprocess_and_transform": 55.7,
+  "fit_and_predict": 33.4
+ },
+ "finished_utc": "2026-11-08T23:16:16.569737+00:00",
+ "spec": {
+  "name": "HGB-return",
+  "target": "return",
+  "learning_rate": 0.05,
+  "max_leaf_nodes": 31,
+  "min_samples_leaf": 1000,
+  "l2_regularization": 1.0,
+  "max_iter": 300,
+  "check_every": 10,
+  "patience_checks": 3,
+  "clip_q": [
+   0.005,
+   0.995
+  ]
+ },
+ "seed": 2018000,
+ "best_iter": 20,
+ "best_val_corr": -0.0006620136533419845,
+ "iters_grown": 50,
+ "history": [
+  {
+   "iter": 10,
+   "val_corr": -0.005103323895305088
+  },
+  {
+   "iter": 20,
+   "val_corr": -0.0006620136533419845
+  },
+  {
+   "iter": 30,
+   "val_corr": -0.003835611950732754
+  },
+  {
+   "iter": 40,
+   "val_corr": -0.006290571834012391
+  },
+  {
+   "iter": 50,
+   "val_corr": -0.0062325403591496995
+  }
+ ],
+ "train_rows": 2627009
+}

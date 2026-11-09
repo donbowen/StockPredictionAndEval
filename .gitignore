@@ -83,7 +83,6 @@ input_data/signed*
 .streamlit/secrets.toml
 work_cache/
 output_corrected/*/predictions/
-output_corrected/*/models/
 
 # outputs of the self-contained notebook
 output_notebook*/

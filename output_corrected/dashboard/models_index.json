@@ -38,5 +38,25 @@
   "run": "nn_v1",
   "model": "MLP_huber_128x64",
   "description": "MLP 128-64, Huber loss on clipped return, 5-seed average"
+ },
+ "OLS-rank": {
+  "run": "hgb_v1",
+  "model": "OLS-rank",
+  "description": "OLS on the within-month rank target"
+ },
+ "HGB-return": {
+  "run": "hgb_v1",
+  "model": "HGB-return",
+  "description": "Histogram gradient boosting on next month's return"
+ },
+ "HGB-rank": {
+  "run": "hgb_v1",
+  "model": "HGB-rank",
+  "description": "Histogram gradient boosting on the within-month rank target"
+ },
+ "HGB-quintile": {
+  "run": "hgb_v1",
+  "model": "HGB-quintile",
+  "description": "Histogram gradient boosting classifier on the return quintile, sorted on expected quintile"
  }
 }

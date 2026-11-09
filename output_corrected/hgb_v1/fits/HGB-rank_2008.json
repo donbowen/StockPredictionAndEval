@@ -1,0 +1,162 @@
+{
+ "model": "HGB-rank",
+ "year": 2008,
+ "config_hash": "b802eb9c833234ae",
+ "panel_key": "511a88310dcbe676",
+ "code_hash": "cd9cd4d9e86b7195",
+ "train_start": "1975-01-28",
+ "train_end": "2004-12-28",
+ "val_start": "2005-01-28",
+ "val_end": "2007-12-28",
+ "test_start": "2008-01-28",
+ "test_rows": 58358,
+ "n_features": 256,
+ "pred_std": 0.038678816218924224,
+ "seconds": {
+  "shared_preprocess_and_transform": 44.7,
+  "fit_and_predict": 249.0
+ },
+ "finished_utc": "2026-11-08T19:12:28.213979+00:00",
+ "spec": {
+  "name": "HGB-rank",
+  "target": "rank",
+  "learning_rate": 0.05,
+  "max_leaf_nodes": 31,
+  "min_samples_leaf": 1000,
+  "l2_regularization": 1.0,
+  "max_iter": 300,
+  "check_every": 10,
+  "patience_checks": 3,
+  "clip_q": [
+   0.005,
+   0.995
+  ]
+ },
+ "seed": 2008000,
+ "best_iter": 300,
+ "best_val_corr": 0.08313668345261871,
+ "iters_grown": 300,
+ "history": [
+  {
+   "iter": 10,
+   "val_corr": 0.06090011604179593
+  },
+  {
+   "iter": 20,
+   "val_corr": 0.06411305815631049
+  },
+  {
+   "iter": 30,
+   "val_corr": 0.0661063396057353
+  },
+  {
+   "iter": 40,
+   "val_corr": 0.06688198493495119
+  },
+  {
+   "iter": 50,
+   "val_corr": 0.06816764142557136
+  },
+  {
+   "iter": 60,
+   "val_corr": 0.06917300873627338
+  },
+  {
+   "iter": 70,
+   "val_corr": 0.06969747462913112
+  },
+  {
+   "iter": 80,
+   "val_corr": 0.07021416506020962
+  },
+  {
+   "iter": 90,
+   "val_corr": 0.07141969332588655
+  },
+  {
+   "iter": 100,
+   "val_corr": 0.07218477237791542
+  },
+  {
+   "iter": 110,
+   "val_corr": 0.07380731858134942
+  },
+  {
+   "iter": 120,
+   "val_corr": 0.07391748457683697
+  },
+  {
+   "iter": 130,
+   "val_corr": 0.07459450064591805
+  },
+  {
+   "iter": 140,
+   "val_corr": 0.075665828115366
+  },
+  {
+   "iter": 150,
+   "val_corr": 0.0761931262518215
+  },
+  {
+   "iter": 160,
+   "val_corr": 0.0768297097137925
+  },
+  {
+   "iter": 170,
+   "val_corr": 0.07762786114536999
+  },
+  {
+   "iter": 180,
+   "val_corr": 0.07827999996138983
+  },
+  {
+   "iter": 190,
+   "val_corr": 0.07848793318720823
+  },
+  {
+   "iter": 200,
+   "val_corr": 0.07915930929654362
+  },
+  {
+   "iter": 210,
+   "val_corr": 0.07940173287016851
+  },
+  {
+   "iter": 220,
+   "val_corr": 0.07993347111207533
+  },
+  {
+   "iter": 230,
+   "val_corr": 0.07987625096956966
+  },
+  {
+   "iter": 240,
+   "val_corr": 0.08031476006391325
+  },
+  {
+   "iter": 250,
+   "val_corr": 0.08072193280106514
+  },
+  {
+   "iter": 260,
+   "val_corr": 0.08106160888520673
+  },
+  {
+   "iter": 270,
+   "val_corr": 0.08184079350804088
+  },
+  {
+   "iter": 280,
+   "val_corr": 0.08220221457739157
+  },
+  {
+   "iter": 290,
+   "val_corr": 0.08290223195802791
+  },
+  {
+   "iter": 300,
+   "val_corr": 0.08313668345261871
+  }
+ ],
+ "train_rows": 2080710
+}

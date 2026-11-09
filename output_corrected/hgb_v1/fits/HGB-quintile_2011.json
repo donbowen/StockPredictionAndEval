@@ -1,0 +1,162 @@
+{
+ "model": "HGB-quintile",
+ "year": 2011,
+ "config_hash": "b802eb9c833234ae",
+ "panel_key": "511a88310dcbe676",
+ "code_hash": "cd9cd4d9e86b7195",
+ "train_start": "1975-01-28",
+ "train_end": "2007-12-28",
+ "val_start": "2008-01-28",
+ "val_end": "2010-12-28",
+ "test_start": "2011-01-28",
+ "test_rows": 51011,
+ "n_features": 256,
+ "pred_std": 0.1901241021943896,
+ "seconds": {
+  "shared_preprocess_and_transform": 48.6,
+  "fit_and_predict": 903.4
+ },
+ "finished_utc": "2026-11-08T20:38:38.838596+00:00",
+ "spec": {
+  "name": "HGB-quintile",
+  "target": "quintile",
+  "learning_rate": 0.05,
+  "max_leaf_nodes": 31,
+  "min_samples_leaf": 1000,
+  "l2_regularization": 1.0,
+  "max_iter": 300,
+  "check_every": 10,
+  "patience_checks": 3,
+  "clip_q": [
+   0.005,
+   0.995
+  ]
+ },
+ "seed": 2011000,
+ "best_iter": 300,
+ "best_val_corr": 0.10122327772123588,
+ "iters_grown": 300,
+ "history": [
+  {
+   "iter": 10,
+   "val_corr": 0.043986903032899614
+  },
+  {
+   "iter": 20,
+   "val_corr": 0.05311086317332553
+  },
+  {
+   "iter": 30,
+   "val_corr": 0.058995126734954516
+  },
+  {
+   "iter": 40,
+   "val_corr": 0.061018640376599126
+  },
+  {
+   "iter": 50,
+   "val_corr": 0.06650940588235436
+  },
+  {
+   "iter": 60,
+   "val_corr": 0.07143475428989549
+  },
+  {
+   "iter": 70,
+   "val_corr": 0.07531254653877892
+  },
+  {
+   "iter": 80,
+   "val_corr": 0.07913591394275571
+  },
+  {
+   "iter": 90,
+   "val_corr": 0.0822158428898829
+  },
+  {
+   "iter": 100,
+   "val_corr": 0.08478919744754404
+  },
+  {
+   "iter": 110,
+   "val_corr": 0.086940705943579
+  },
+  {
+   "iter": 120,
+   "val_corr": 0.0891807101607167
+  },
+  {
+   "iter": 130,
+   "val_corr": 0.09053777202143892
+  },
+  {
+   "iter": 140,
+   "val_corr": 0.09114144210840286
+  },
+  {
+   "iter": 150,
+   "val_corr": 0.09202380152368826
+  },
+  {
+   "iter": 160,
+   "val_corr": 0.09336343059379447
+  },
+  {
+   "iter": 170,
+   "val_corr": 0.09345315876506045
+  },
+  {
+   "iter": 180,
+   "val_corr": 0.09463553047846779
+  },
+  {
+   "iter": 190,
+   "val_corr": 0.09455875077064783
+  },
+  {
+   "iter": 200,
+   "val_corr": 0.09591289025594911
+  },
+  {
+   "iter": 210,
+   "val_corr": 0.09685812234692906
+  },
+  {
+   "iter": 220,
+   "val_corr": 0.09658481934124355
+  },
+  {
+   "iter": 230,
+   "val_corr": 0.09662301560968427
+  },
+  {
+   "iter": 240,
+   "val_corr": 0.0973491595694351
+  },
+  {
+   "iter": 250,
+   "val_corr": 0.09836750101749017
+  },
+  {
+   "iter": 260,
+   "val_corr": 0.09898138971350928
+  },
+  {
+   "iter": 270,
+   "val_corr": 0.10010944996334233
+  },
+  {
+   "iter": 280,
+   "val_corr": 0.10061579631861921
+  },
+  {
+   "iter": 290,
+   "val_corr": 0.10114944960041866
+  },
+  {
+   "iter": 300,
+   "val_corr": 0.10122327772123588
+  }
+ ],
+ "train_rows": 2262822
+}

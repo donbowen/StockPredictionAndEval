@@ -1,0 +1,130 @@
+{
+ "model": "HGB-rank",
+ "year": 2018,
+ "config_hash": "b802eb9c833234ae",
+ "panel_key": "511a88310dcbe676",
+ "code_hash": "cd9cd4d9e86b7195",
+ "train_start": "1975-01-28",
+ "train_end": "2014-12-28",
+ "val_start": "2015-01-28",
+ "val_end": "2017-12-28",
+ "test_start": "2018-01-28",
+ "test_rows": 48774,
+ "n_features": 263,
+ "pred_std": 0.03496387980002333,
+ "seconds": {
+  "shared_preprocess_and_transform": 55.7,
+  "fit_and_predict": 201.6
+ },
+ "finished_utc": "2026-11-08T23:19:38.220380+00:00",
+ "spec": {
+  "name": "HGB-rank",
+  "target": "rank",
+  "learning_rate": 0.05,
+  "max_leaf_nodes": 31,
+  "min_samples_leaf": 1000,
+  "l2_regularization": 1.0,
+  "max_iter": 300,
+  "check_every": 10,
+  "patience_checks": 3,
+  "clip_q": [
+   0.005,
+   0.995
+  ]
+ },
+ "seed": 2018000,
+ "best_iter": 190,
+ "best_val_corr": 0.06954128716605455,
+ "iters_grown": 220,
+ "history": [
+  {
+   "iter": 10,
+   "val_corr": 0.052876790592526667
+  },
+  {
+   "iter": 20,
+   "val_corr": 0.05706953622872606
+  },
+  {
+   "iter": 30,
+   "val_corr": 0.05950166647515184
+  },
+  {
+   "iter": 40,
+   "val_corr": 0.05991347381266469
+  },
+  {
+   "iter": 50,
+   "val_corr": 0.06142230058077761
+  },
+  {
+   "iter": 60,
+   "val_corr": 0.0611281794621593
+  },
+  {
+   "iter": 70,
+   "val_corr": 0.06238039303316176
+  },
+  {
+   "iter": 80,
+   "val_corr": 0.0639521125080253
+  },
+  {
+   "iter": 90,
+   "val_corr": 0.0646724658331202
+  },
+  {
+   "iter": 100,
+   "val_corr": 0.06550999200605695
+  },
+  {
+   "iter": 110,
+   "val_corr": 0.06617194274688667
+  },
+  {
+   "iter": 120,
+   "val_corr": 0.06749112994933505
+  },
+  {
+   "iter": 130,
+   "val_corr": 0.06811790062348798
+  },
+  {
+   "iter": 140,
+   "val_corr": 0.06852478720730174
+  },
+  {
+   "iter": 150,
+   "val_corr": 0.068609120825675
+  },
+  {
+   "iter": 160,
+   "val_corr": 0.06919025106504417
+  },
+  {
+   "iter": 170,
+   "val_corr": 0.06922890039248839
+  },
+  {
+   "iter": 180,
+   "val_corr": 0.06945923444299662
+  },
+  {
+   "iter": 190,
+   "val_corr": 0.06954128716605455
+  },
+  {
+   "iter": 200,
+   "val_corr": 0.06886094253248252
+  },
+  {
+   "iter": 210,
+   "val_corr": 0.06888166005210522
+  },
+  {
+   "iter": 220,
+   "val_corr": 0.06911078630403034
+  }
+ ],
+ "train_rows": 2627009
+}

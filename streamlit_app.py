@@ -143,7 +143,7 @@ def get_feature_importance_details(estimator, feature_names):
                        "ensemble's seeds. A rough guide only: it ignores the ReLU non-linearities.",
         }
 
-    if estimator.__class__.__name__ == "HistGradientBoostingRegressor":
+    if estimator.__class__.__name__ in ("HistGradientBoostingRegressor", "HistGradientBoostingClassifier"):
         return {
             "subheader": "🌳 Estimated Gradient Boosting Importances",
             "x_label": "Cumulative Split Gain",
@@ -168,6 +168,36 @@ st.set_page_config(
 # Results shown by the dashboard: built by build_dashboard_bundle.py from the v2 pipeline runs.
 RESULTS_DIR = "output_corrected/dashboard"
 
+# What the "Models on This Site" tab says about each model.
+_RETURN = "Next month's return"
+_RANK = "Next month's rank within the month"
+MODEL_GUIDE = {
+    "OLS": {"Family": "Linear", "Predicts": _RETURN, "Tuning": "None",
+            "What it is": "Plain linear regression, the baseline for everything else."},
+    "OLS-rank": {"Family": "Linear", "Predicts": _RANK, "Tuning": "None",
+                 "What it is": "OLS with the rank target. Comparing it to OLS shows what the target does on its own, without a more flexible model."},
+    "Ridge": {"Family": "Linear", "Predicts": _RETURN, "Tuning": "None (alpha = 1)",
+              "What it is": "Linear regression with a small fixed penalty on coefficients. An untuned baseline."},
+    "RidgeCV": {"Family": "Linear", "Predicts": _RETURN, "Tuning": "Penalty chosen each year",
+                "What it is": "Linear regression that shrinks all coefficients toward zero."},
+    "Lasso": {"Family": "Linear", "Predicts": _RETURN, "Tuning": "None (alpha = 1)",
+              "What it is": "Linear regression that sets coefficients to exactly zero. An untuned baseline. This penalty is so strong that it keeps a single predictor every year (IndRetBig, an industry return), which creates many tied predictions."},
+    "LassoCV": {"Family": "Linear", "Predicts": _RETURN, "Tuning": "Penalty chosen each year",
+                "What it is": "Linear regression that sets coefficients to exactly zero, so it also picks variables. It typically keeps about 10 of the 200+ predictors."},
+    "MLP-rank-256-128-64": {"Family": "Neural net", "Predicts": _RANK, "Tuning": "Training rounds chosen each year",
+                            "What it is": "Three hidden layers (256, 128, 64) with dropout of 0.3, averaged over 5 networks. This is the neural net in the Full Code Example."},
+    "MLP-rank-128-64": {"Family": "Neural net", "Predicts": _RANK, "Tuning": "Training rounds chosen each year",
+                        "What it is": "Smaller network with two hidden layers (128, 64), averaged over 5 networks."},
+    "MLP-huber-128-64": {"Family": "Neural net", "Predicts": _RETURN + " (clipped)", "Tuning": "Training rounds chosen each year",
+                         "What it is": "Two hidden layers (128, 64), averaged over 5 networks. Its Huber loss reduces the influence of outliers."},
+    "HGB-return": {"Family": "Gradient boosted trees", "Predicts": _RETURN, "Tuning": "Number of trees chosen each year",
+                   "What it is": "Up to 300 small trees grown in sequence."},
+    "HGB-rank": {"Family": "Gradient boosted trees", "Predicts": _RANK, "Tuning": "Number of trees chosen each year",
+                 "What it is": "The same trees, predicting the rank target."},
+    "HGB-quintile": {"Family": "Gradient boosted trees", "Predicts": "Which quintile next month's return lands in", "Tuning": "Number of trees chosen each year",
+                     "What it is": "A classifier. It estimates the probability of each quintile, and stocks are sorted on their expected quintile."},
+}
+
 
 def model_index():
     """{dashboard model name: {run, model, description}} ({} if the bundle is absent)."""
@@ -190,8 +220,8 @@ def select_model_path(selected_model, key):
     gets a year picker."""
     files = model_files(selected_model)
     if not files:
-        st.warning("No saved pipelines found for this model. Re-run run_linear_backtest.py / run_nn_backtest.py "
-                   "(saved models are not stored in git).")
+        st.warning("No saved pipelines found for this model. Re-run run_linear_backtest.py / run_nn_backtest.py / "
+                   "run_hgb_backtest.py.")
         return f"output_corrected/missing/{selected_model}.joblib"
     year = st.selectbox("Test year (the model was trained only on earlier years)", sorted(files), index=len(files) - 1,
                         key=key)
@@ -685,11 +715,10 @@ def intro_page():
     """)
     
     st.success(
-        "Results come from the **corrected (v2) pipeline**: predictor factors are lagged one month, missing values "
-        "are filled with same-month cross-sectional means, all preprocessing and tuning use only earlier years, "
-        "and portfolios use a documented tie policy. Neural networks were trained on a within-month rank target "
-        "(5-seed averages). Caveats: equal-weighted quintiles, before transaction costs, no delisting returns, "
-        "and the strong results likely lean on microcaps and volatile stocks."
+        "**How the results are built:** predictor factors are lagged one month, missing values are filled with "
+        "same-month cross-sectional means, all preprocessing and tuning use only earlier years, and tied predictions "
+        "are split evenly across portfolios. Caveats: equal-weighted quintiles, before transaction costs, no delisting "
+        "returns, and the strong results likely lean on microcaps and volatile stocks."
     )
     index = model_index()
     if index:
@@ -721,23 +750,23 @@ def compare_models_page():
         # Extract model names
         model_names = sorted(set([col.split('_')[1] for col in returns_wide_df.columns if 'ret_' in col]))
 
-        # Default selection: OLS first, then the first others alphabetically (5 models in total)
-        default_models = (['OLS'] if 'OLS' in model_names else []) + [m for m in model_names if m != 'OLS']
+        # Default selection: one model from each family
+        default_models = [m for m in ['OLS', 'LassoCV', 'MLP-rank-256-128-64', 'HGB-return', 'HGB-quintile'] if m in model_names]
 
         # Model selection
         selected_models = st.multiselect(
             "Select models to compare:",
             options=model_names,
-            default=default_models[:min(5, len(default_models))]
+            default=default_models
         )
-        
+
         if not selected_models:
             st.warning("Please select at least one model to continue.")
             return
-        
+
         # Create tabs
-        tab1, tab2, tab3, tab4 = st.tabs(["Cumulative Returns Comparison", "Risk-Adjusted Returns via Regression Analysis", "Additional Metrics", "About the Models"])
-        
+        tab1, tab2, tab3, tab_list, tab4 = st.tabs(["Cumulative Returns Comparison", "Risk-Adjusted Returns via Regression Analysis", "Additional Metrics", "Models on This Site", "About the Models"])
+
         # Tab 1: Cumulative Returns Comparison
         with tab1:
             st.header("Long-Short Portfolio Returns Comparison")
@@ -897,16 +926,17 @@ def compare_models_page():
             
             st.markdown("""
             This table shows the average turnover for each portfolio bin across the selected models.
-            Turnover is defined as the percentage of stocks bought, sold, or held in each portfolio.
+            It shows the share of each portfolio, by weight, that is newly bought or held over from last month.
+            Each portfolio's weights sum to one every month, so the weight sold always equals the weight bought.
             """)
-            
+
             _, _, turnover_df = load_data()
             turnover_df = turnover_df[turnover_df['model'].isin(selected_models)]
-            turnover_df = turnover_df.set_index(['model', 'bin'])[['% buy', '% sell', '% hold']].groupby(level=['model','bin']).mean()
-            # turnover_df.columns = [c.title() for c in turnover_df.columns]  
-            
-            # user decides if they want to see % buy, % sell, or % hold
-            st.selectbox("Select turnover type to display:", options=[ '% hold', '% buy', '% sell'], index=0, key='turnover_type')
+            turnover_df = turnover_df.set_index(['model', 'bin'])[['% buy', '% hold']].groupby(level=['model','bin']).mean()
+            # turnover_df.columns = [c.title() for c in turnover_df.columns]
+
+            # user decides if they want to see % buy or % hold
+            st.selectbox("Select turnover type to display:", options=[ '% hold', '% buy'], index=0, key='turnover_type')
             turnover_type = st.session_state['turnover_type']
             
             show_turnover = turnover_df[turnover_type].unstack(level=-1)
@@ -949,15 +979,46 @@ def compare_models_page():
             - Plain Ridge and Lasso with the default penalty (alpha = 1) are included as baselines.
 
             MLP (Multi-Layer Perceptron) aka Neural Network:
-            - The MLPs here predict each stock's rank of next-month return within its month (this worked better than predicting raw returns), use dropout, and average five randomly initialised networks.
+            - Two of the MLPs here predict each stock's rank of next-month return within its month, and one predicts a clipped return using a Huber loss. Each averages five randomly initialised networks.
             - MLP is a type of neural network that consists of multiple layers of interconnected nodes (neurons).
             - A punchy one-liner is that it is a "black box" model that can learn complex relationships in the data.
             - NNs are powerful and flexible, but they require careful tuning of hyperparameters and can be prone to overfitting.
             - Some projects have found them to work well in finance, for example, [Gu, Kelly & Xiu (RFS 2020)](https://academic.oup.com/rfs/article/33/5/2223/5758276/) and [OpenAssetPricing](https://github.com/mk0417/open-asset-pricing-download/blob/master/examples/ML_portfolio_example.ipynb).
-            
-    
+
+            Histogram Gradient Boosting (HGB):
+            - HGB builds hundreds of small decision trees in sequence, and each new tree tries to fix the errors of the trees before it.
+            - Trees pick up non-linear patterns and interactions between variables on their own, and they don't care about the scale of a variable.
+            - "Histogram" means that it groups each variable's values into buckets before looking for splits, which makes it fast enough for millions of rows.
+            - The main risk is overfitting: more trees always fit the training data better. Here, the number of trees is chosen using the last three years of the training window.
+
+            What is the target?
+            - A model doesn't have to predict the return itself. Since we only use predictions to sort stocks, we can instead predict each stock's rank within its month, or which quintile it lands in.
+            - Those targets ignore how extreme an outlier is. A stock that rises 2,000% counts the same as the month's other top performers.
+            - See the "Models on This Site" tab for which target each model uses.
+
             """)
-                
+
+        with tab_list:
+            st.header("Models on This Site")
+
+            st.markdown("""
+            Every model below uses the same data and timeline. It is retrained each year from 2000 to 2019 on all earlier
+            years, using the same predictors and preprocessing, and its predictions are sorted into the same 5 portfolios.
+            The models differ in what they try to predict and how flexible they are.
+
+            These are all of the models that the site can show. Use the box at the top of this page to choose the ones to compare.
+            """)
+
+            rows = [{"Model": name, **MODEL_GUIDE.get(name, {"What it is": info["description"]})} for name, info in model_index().items()]
+            st.table(pd.DataFrame(rows).fillna("").set_index("Model"))   # st.table wraps long descriptions
+
+            st.markdown("""
+            **Choosing the designs**
+            - The penalties in RidgeCV and LassoCV, and the number of training rounds in the neural nets and HGB models, are chosen each year using only the last three years of the training window.
+            - The HGB settings (other than the number of trees) were fixed before seeing any results.
+            - The neural net designs were chosen by comparing several designs on rank correlation, validating on 2002-2004. That overlaps the first test years, so 2005 onward is the cleaner test of those designs.
+            """)
+
     except Exception as e:
         st.error(f"An error occurred: {e}")
         st.error("Please make sure the portfolio data files exist in the 'output_corrected/dashboard' directory (run build_dashboard_bundle.py).")
@@ -1190,7 +1251,7 @@ def model_details_page():
             turnover_model_df = turnover_df[turnover_df['model'] == selected_model]
             
             # Display turnover data
-            turnover_model_df = turnover_model_df[['bin', '% buy', '% sell', '% hold']].groupby('bin').mean()
+            turnover_model_df = turnover_model_df[['bin', '% buy', '% hold']].groupby('bin').mean()
             turnover_model_df.columns = [c.title() for c in turnover_model_df.columns]
             
             st.dataframe(turnover_model_df.style.format("{:.1%}"))
@@ -1501,7 +1562,7 @@ def background_page():
         The data, in part, might look like the below, where each row contains data about a firm-month:
         - **Firm ID**: Unique identifier for the company (called "permno" in CRSP)
         - **Month**: The specific month of the return
-        - **Return**: Return for the stock price for that month, including dividends and delisting returns
+        - **Return**: Return for the stock price for that month, including dividends but not delisting returns
         """)
         st.dataframe(toy_rets)
         
@@ -1699,14 +1760,19 @@ def background_page():
                                 
             Next, we:
             1. Sort stocks by predicted return each month. In the example, we sort into 2 portfolios. The output of this is to the right.
-            
+
             ```python
             def port_sort(x, nport):
-                return np.ceil(x.rank(method="min") * nport / (len(x) + 1)).astype(int)
-            
-            predictions['portfolio_assignment'] = predictions.groupby('timevar')['prediction'].transform(lambda x: port_sort(x, 2)) 
+                return np.ceil(x.rank(method="first") * nport / len(x)).astype(int)
+
+            predictions['portfolio_assignment'] = predictions.groupby('yyyymm')['prediction'].transform(lambda x: port_sort(x, 2))
             ```
-            
+
+            **What about ties?** `method="first"` breaks ties by row order, which keeps this example simple but is arbitrary.
+            Real models do produce ties: a Lasso can set every coefficient to zero and give all stocks the same prediction.
+            The results on this site split tied stocks evenly across the portfolios they span, and the
+            Full Code Example shows how.
+
             2. Then we compute the monthly portfolio returns. You can see an example of this to the right. Notice that we also compute the 
             long minus short portfolio, which is the difference between the returns of the highest and lowest ranked portfolios.
             
@@ -1718,7 +1784,7 @@ def background_page():
             # reshape to wide, and compute the long minus short portfolio
             ports_wide = portfolios.unstack(level=-1)
             ports_wide.columns = [f"Port{col}" for col in ports_wide.columns]
-            ports_wide['LongShort'] = ports_wide['Port'] - ports_wide['Port']
+            ports_wide['LongShort'] = ports_wide['Port2'] - ports_wide['Port1']
             ```
             
             3. Finally, we can subject those returns (focusing on the long-short portfolio) to any kind of analysis we might want to apply to asset returns. 
@@ -1750,8 +1816,8 @@ def background_page():
             
             # sort firms into portfolios monthly
             def port_sort(x, nport):
-                return np.ceil(x.rank(method="min") * nport / (len(x) + 1)).astype(int)
-            
+                return np.ceil(x.rank(method="first") * nport / len(x)).astype(int)
+
             portfolio_toy_df['portfolio_assignment'] = portfolio_toy_df[['yyyymm', 'firm_id', 'prediction']].groupby('yyyymm')['prediction'].transform(lambda x: port_sort(x, 2)) 
             portfolio_toy_df = portfolio_toy_df[['yyyymm', 'firm_id', 'ret', 'prediction', 'portfolio_assignment']]
             
@@ -1771,8 +1837,9 @@ def background_page():
         st.header("Full Code Example")
         st.markdown("""
         Below is the full, self-contained Jupyter Notebook (available in the repo). It takes the ideas in this
-        background section and implements them on real data, and it mirrors the tested code that produced the
-        results on the other pages. Features that make working with such large data easier:
+        background section and implements them on real data. It is written to be read and changed. The results on the
+        other pages come from the `stockpred` package in the repo, which follows the same steps.
+        Features that make working with such large data easier:
         - A `DEV` switch that shrinks the data so you can modify and explore quickly
         - Several models in one loop: OLS, Ridge, Lasso, their tuned versions (RidgeCV, LassoCV), and a neural net
         - Every fit is saved as soon as it finishes, and finished fits are not retrained
@@ -1781,9 +1848,9 @@ def background_page():
         - Portfolios with a fair treatment of ties, and HAC (Newey-West) t-statistics
 
         **The notebook also shows you how to design and train models to produce your own
-        predictive signals.**
+        predictive signals: add one line to `model_dict`.**
 
-        Running it takes hours and a decent amount of RAM. For more details, read the [README.md file in the repo](https://github.com/donbowen/StockPredictionAndEval).
+        A full run takes hours and about 30 GB of RAM. With `DEV = True` it runs in a few minutes. For more details, read the [README.md file in the repo](https://github.com/donbowen/StockPredictionAndEval).
         
         ---
         """)

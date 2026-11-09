@@ -207,5 +207,30 @@ def test_perf_stats_and_drawdown():
         perf_stats(pd.Series([15.0, -20.0]))                # percent passed by mistake
 
 
+def test_hgb_targets_and_saved_model_match_the_chosen_round():
+    from stockpred.hgb import HGBSpec, _signal, fit_hgb, keep_first_rounds, make_target
+
+    rng = np.random.default_rng(0)
+    month = np.repeat(np.arange(24), 200)
+    y = rng.normal(size=len(month))
+    rank = make_target(y, month, "rank")
+    assert rank.min() > -0.5 and rank.max() <= 0.5
+    assert np.allclose(pd.Series(rank).groupby(month).mean(), 0.5 / 200)          # each month's ranks, centred
+    quintile = make_target(y, month, "quintile")
+    assert set(quintile) == {1, 2, 3, 4, 5}
+    assert (pd.Series(quintile).groupby(month).value_counts() == 40).all()         # equal-sized quintiles every month
+
+    Z = np.column_stack([y + rng.normal(size=len(y)), rng.normal(size=len(y))])
+    tr, va = month < 18, month >= 18
+    for target in ("rank", "quintile"):
+        spec = HGBSpec("t", target=target, max_iter=30, min_samples_leaf=20, max_leaf_nodes=7)
+        est, best_iter, _, _ = fit_hgb(Z[tr], make_target(y[tr], month[tr], target), Z[va], y[va], month[va], spec, seed=0)
+        before = (list(est.staged_predict_proba(Z[va]))[best_iter - 1] @ est.classes_ if target == "quintile"
+                  else list(est.staged_predict(Z[va]))[best_iter - 1])
+        keep_first_rounds(est, best_iter)
+        assert len(est._predictors) == best_iter
+        assert np.allclose(_signal(est, Z[va]), before)
+
+
 def test_newey_west_lag_rule():
     assert newey_west_lags(240) == 4

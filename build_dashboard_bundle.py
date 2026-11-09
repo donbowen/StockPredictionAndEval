@@ -2,8 +2,8 @@
 
     python build_dashboard_bundle.py
 
-Needs the predictions written by run_linear_backtest.py (linear_v1) and run_nn_backtest.py (nn_v1)
-under output_corrected/.  Writes output_corrected/dashboard/.
+Needs the predictions written by run_linear_backtest.py (linear_v1), run_nn_backtest.py (nn_v1) and
+run_hgb_backtest.py (hgb_v1) under output_corrected/.  Writes output_corrected/dashboard/.
 """
 import argparse
 from pathlib import Path

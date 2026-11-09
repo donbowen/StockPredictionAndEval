@@ -1,4 +1,4 @@
-"""Convert the corrected linear + MLP runs into the file layout the Streamlit dashboard reads
+"""Convert the corrected linear, MLP and HGB runs into the file layout the Streamlit dashboard reads
 (returns_wide.csv, port_stats_tall.csv, turnover.csv) plus a small model index.
 
 Dashboard model names must not contain underscores (the app parses ``ret_<model>_bin<k>``).
@@ -26,6 +26,10 @@ MODELS = {
                             "MLP 256-128-64, dropout 0.3, within-month rank target, 5-seed average"),
     "MLP-rank-128-64": ("nn_v1", "MLP_rank_128x64", "MLP 128-64, within-month rank target, 5-seed average"),
     "MLP-huber-128-64": ("nn_v1", "MLP_huber_128x64", "MLP 128-64, Huber loss on clipped return, 5-seed average"),
+    "OLS-rank": ("hgb_v1", "OLS-rank", "OLS on the within-month rank target"),
+    "HGB-return": ("hgb_v1", "HGB-return", "Histogram gradient boosting on next month's return"),
+    "HGB-rank": ("hgb_v1", "HGB-rank", "Histogram gradient boosting on the within-month rank target"),
+    "HGB-quintile": ("hgb_v1", "HGB-quintile", "Histogram gradient boosting classifier on the return quintile, sorted on expected quintile"),
 }
 
 

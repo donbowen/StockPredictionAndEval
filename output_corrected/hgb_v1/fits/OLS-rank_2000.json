@@ -1,0 +1,21 @@
+{
+ "model": "OLS-rank",
+ "year": 2000,
+ "config_hash": "b802eb9c833234ae",
+ "panel_key": "511a88310dcbe676",
+ "code_hash": "cd9cd4d9e86b7195",
+ "train_start": "1975-01-28",
+ "train_end": "1996-12-28",
+ "val_start": "1997-01-28",
+ "val_end": "1999-12-28",
+ "test_start": "2000-01-28",
+ "test_rows": 82512,
+ "n_features": 227,
+ "pred_std": 0.04105028510093689,
+ "seconds": {
+  "shared_preprocess_and_transform": 37.5,
+  "fit_and_predict": 5.2
+ },
+ "finished_utc": "2026-11-08T16:44:12.013912+00:00",
+ "train_rows": 1726425
+}

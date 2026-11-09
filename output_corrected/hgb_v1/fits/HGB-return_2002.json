@@ -1,0 +1,122 @@
+{
+ "model": "HGB-return",
+ "year": 2002,
+ "config_hash": "b802eb9c833234ae",
+ "panel_key": "511a88310dcbe676",
+ "code_hash": "cd9cd4d9e86b7195",
+ "train_start": "1975-01-28",
+ "train_end": "1998-12-28",
+ "val_start": "1999-01-28",
+ "val_end": "2001-12-28",
+ "test_start": "2002-01-28",
+ "test_rows": 69404,
+ "n_features": 238,
+ "pred_std": 5.28266368418266,
+ "seconds": {
+  "shared_preprocess_and_transform": 37.3,
+  "fit_and_predict": 119.0
+ },
+ "finished_utc": "2026-11-08T17:06:14.544306+00:00",
+ "spec": {
+  "name": "HGB-return",
+  "target": "return",
+  "learning_rate": 0.05,
+  "max_leaf_nodes": 31,
+  "min_samples_leaf": 1000,
+  "l2_regularization": 1.0,
+  "max_iter": 300,
+  "check_every": 10,
+  "patience_checks": 3,
+  "clip_q": [
+   0.005,
+   0.995
+  ]
+ },
+ "seed": 2002000,
+ "best_iter": 170,
+ "best_val_corr": 0.08276444045133276,
+ "iters_grown": 200,
+ "history": [
+  {
+   "iter": 10,
+   "val_corr": 0.021191197206572625
+  },
+  {
+   "iter": 20,
+   "val_corr": 0.03792437095784369
+  },
+  {
+   "iter": 30,
+   "val_corr": 0.03914115831872594
+  },
+  {
+   "iter": 40,
+   "val_corr": 0.04117092115967757
+  },
+  {
+   "iter": 50,
+   "val_corr": 0.052574012994498515
+  },
+  {
+   "iter": 60,
+   "val_corr": 0.060132153337020884
+  },
+  {
+   "iter": 70,
+   "val_corr": 0.06761349901129733
+  },
+  {
+   "iter": 80,
+   "val_corr": 0.06654000583598395
+  },
+  {
+   "iter": 90,
+   "val_corr": 0.06775874994312035
+  },
+  {
+   "iter": 100,
+   "val_corr": 0.07219328741922146
+  },
+  {
+   "iter": 110,
+   "val_corr": 0.07253692303552761
+  },
+  {
+   "iter": 120,
+   "val_corr": 0.0731812708846504
+  },
+  {
+   "iter": 130,
+   "val_corr": 0.07414318391511585
+  },
+  {
+   "iter": 140,
+   "val_corr": 0.07777880819069355
+  },
+  {
+   "iter": 150,
+   "val_corr": 0.07994375108425877
+  },
+  {
+   "iter": 160,
+   "val_corr": 0.08071038168800045
+  },
+  {
+   "iter": 170,
+   "val_corr": 0.08276444045133276
+  },
+  {
+   "iter": 180,
+   "val_corr": 0.08192069252670177
+  },
+  {
+   "iter": 190,
+   "val_corr": 0.0816431327292529
+  },
+  {
+   "iter": 200,
+   "val_corr": 0.08274728223355841
+  }
+ ],
+ "train_rows": 1641242
+}

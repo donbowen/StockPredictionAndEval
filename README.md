@@ -18,7 +18,7 @@ Financial markets generate vast amounts of data, but extracting actionable insig
 
 - **State-of-the-art input data**: CRSP for stock returns, OpenAssetPricing for predictive signals
 - **Prediction models**: 
-  - Included here: OLS, Ridge, Lasso, RidgeCV, LassoCV, and PyTorch neural nets (MLPs)
+  - Included here: OLS, Ridge, Lasso, RidgeCV, LassoCV, PyTorch neural nets (MLPs), and histogram gradient boosting (HGB)
   - Can easily be expanded to any other model that can be integrated into `sklearn` pipelines
 - **Out-of-sample validation**: Rolling training and testing to prevent look-ahead bias
 - **Portfolio construction**: Creation of long-short portfolios based on model predictions
@@ -37,14 +37,16 @@ StockPredictorProject/
 ├── output_corrected/           # Results of the package runs (what the dashboard shows)
 │   ├── linear_v1/              # OLS, Ridge(CV), Lasso(CV): config, per-fit metadata, results tables
 │   ├── nn_v1/                  # MLP ensembles
+│   ├── hgb_v1/                 # Histogram gradient boosting, and OLS on the rank target
 │   └── dashboard/              # Files the dashboard reads (built by build_dashboard_bundle.py)
 ├── stockpred/                  # Tested package: data, preprocessing, tuning, portfolios, evaluation, MLPs
 ├── tests/                      # Unit tests (python -m pytest tests)
 ├── README.md                   # This file
-├── stock_prediction_and_eval.ipynb  # Self-contained walkthrough notebook (mirrors the package)
+├── stock_prediction_and_eval.ipynb  # Self-contained walkthrough notebook for students (same steps as the package)
 ├── run_linear_backtest.py      # Reproduce the linear-model results
 ├── run_nn_screen.py            # Neural-net design screen
 ├── run_nn_backtest.py          # Reproduce the neural-net results
+├── run_hgb_backtest.py         # Reproduce the gradient boosting results
 ├── build_dashboard_bundle.py   # Build the dashboard's input files
 └── streamlit_app.py            # Streamlit dashboard
 ```
@@ -123,11 +125,12 @@ buffer year and 2021+ an untouched holdout (never loaded). Tests: `python -m pyt
 ```bash
 python run_nn_screen.py --year 2005      # architecture / target screen (no test data touched)
 python run_nn_backtest.py                # three 5-seed MLP ensembles, 2000-2019, then evaluation (needs PyTorch)
+python run_hgb_backtest.py               # gradient boosting on three targets and OLS on the rank target, then evaluation (about 7.5 hours)
 python build_dashboard_bundle.py         # writes output_corrected/dashboard/ for the Streamlit app
 ```
 
-The dashboard's model-pipeline and variable-importance tabs load the per-year saved pipelines, so run the backtests
-locally first; saved models are not stored in git. (To browse a notebook run instead, set `RESULTS_DIR` in
+The dashboard's model-pipeline and variable-importance tabs load the per-year saved pipelines in
+`output_corrected/<run>/models/`, which are stored in git. Predictions are not. (To browse a notebook run instead, set `RESULTS_DIR` in
 `streamlit_app.py` to its folder and write a `models_index.json` like the one in `output_corrected/dashboard/`.)
 
 ### Running the Dashboard

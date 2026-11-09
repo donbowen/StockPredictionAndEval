@@ -1,0 +1,22 @@
+{
+ "python": "3.13.5",
+ "platform": "Windows-11-10.0.26200-SP0",
+ "numpy": "2.1.0",
+ "pandas": "2.2.3",
+ "scikit-learn": "1.6.1",
+ "scipy": "1.15.3",
+ "statsmodels": "0.14.6",
+ "pyarrow": "23.0.1",
+ "joblib": "1.4.2",
+ "cpu_logical": 24,
+ "blas_threads_used": 12,
+ "model_fit_device": "CPU (sklearn); GPU not used",
+ "git": {
+  "commit": "ed383d39e8801daf94574b62d582d6bdebdb789f",
+  "branch": "claude/code-example-clarity-review-1ac159",
+  "dirty": true
+ },
+ "code_hash": "cd9cd4d9e86b7195",
+ "ram_total_gb": 127.5,
+ "ram_available_gb_at_start": 72.0
+}
