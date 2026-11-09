@@ -689,6 +689,7 @@ def intro_page():
     - **Background**: Learn how models are trained, the data used, and how return predictions are turned into portfolios
     - **Compare Models**: Compare performance across multiple models
     - **Model Details**: Deep dive into a specific model
+    - **Trading the Model in Practice**: Taxes, account types, a manageable 20-stock version, and how professional funds trade
     
     ## Getting Started:
     
@@ -1489,9 +1490,218 @@ def sidebar_navigation():
     st.sidebar.title("Pages")
     page = st.sidebar.radio(
         "Go to:",
-        ["Introduction", "Background & Methods", "Compare Models", "Dig into a Model"]
+        ["Introduction", "Background & Methods", "Compare Models", "Dig into a Model", "Trading the Model in Practice"]
     )
     return page
+
+
+def load_practice():
+    """Monthly returns, turnover and trade counts of each model under several trading approaches, or None."""
+    p = Path(RESULTS_DIR) / "practice.csv"
+    return _load_practice(str(p), _modified(p)) if p.exists() else None
+
+
+@st.cache_data
+def _load_practice(path, modified):
+    return pd.read_csv(path, parse_dates=['date']).set_index('date')
+
+
+PRACTICE_BACKGROUND = r"""
+*This page is about how the strategies on this site could be traded. It describes general US federal tax rules
+for teaching purposes. It is not tax or investment advice.*
+
+### TL;DR for an individual investor
+- **These strategies trade a lot.** Most holdings are replaced within a month or two, so nearly every gain is
+  short-term and, in a regular (taxable) brokerage account, is taxed like wages: up to 37%, plus 3.8% investment
+  income tax for high earners.
+- **In a taxable account, that tax erases the edge.** In a rough simulation for 2005-2019, the 20-stock version
+  of the MLP-rank model grew about 14.5% a year before tax, but about 8.7% after tax at top-bracket rates. That is
+  no better than simply holding an index fund (also about 8.7%, since an index fund rarely sells and is taxed
+  mostly on its dividends). For a middle-bracket investor, about 11% a year was left, versus about 9% for the index fund.
+- **Use a tax-advantaged account instead.** Inside a Roth IRA, a traditional IRA, or a 401(k), trades aren't
+  taxed. A Roth is the best fit: gains are never taxed. Most 401(k) plans only offer a menu of funds, so you
+  would need a plan with a self-directed brokerage window.
+- **These accounts are long-only.** IRAs and 401(k) brokerage windows don't allow borrowing or short selling, so
+  only the long-only versions on the next tab can be traded there.
+- **Keep it manageable.** Holding the top 20 stocks among the most liquid 20% is about 400 trades a year, versus
+  more than 3,000 for the full top quintile. A simple rule, holding a stock until its rank falls below 60
+  instead of selling as soon as it leaves the top 20, cut trading further and did as well or better in this backtest.
+- **A business entity doesn't help.** A single-member LLC is ignored for income taxes, and a partnership passes
+  the same short-term gains through to its owners. "Trader tax status" requires near-daily trading, and even
+  then gains are taxed as ordinary income.
+
+### TL;DR for trading firms
+- **Structure comes first.** Most US hedge funds are partnerships, so gains pass through to investors with their
+  short- or long-term character. Much of their money comes from tax-exempt investors (pensions, endowments) or
+  from abroad, through offshore funds set up to shield those investors from US tax. Many quantitative long-short
+  funds simply don't trade with taxes in mind.
+- **Tax-aware long-short funds exist for taxable investors.** Managers such as AQR publish research on these
+  strategies. They often aim to produce net capital losses that offset the investor's gains elsewhere.
+- **Derivatives have their own rules.** Hedging with stock-index futures is taxed at a blend of 60% long-term and
+  40% short-term rates, whatever the holding period. Rules on wash sales, straddles and constructive sales block
+  the obvious workarounds. In the best-known abuse case, Renaissance Technologies used bank "basket options" to
+  turn short-term gains into long-term ones. A US Senate report criticized this in 2014, and the firm's principals
+  reportedly agreed in 2021 to pay the IRS up to about \$7 billion.
+- **Implementation is industrial.** Funds borrow stocks through prime brokers, build portfolios with optimizers
+  that weigh expected return against risk and trading costs, and execute with algorithms over hours or days.
+
+---
+
+### Tax reduction tools
+- **Harvest losses, on both the long and short sides, and hold winners past a year.** Selling a loser realizes a
+  loss that offsets gains. Waiting until a winner has been held more than a year turns a short-term gain into a
+  long-term one, taxed at a lower rate. The "Tax-Loss Harvesting" tab walks through an example.
+- **Sell the highest-cost shares first.** When you sell part of a position bought at different prices, you can
+  choose which shares you sell. Selling the most expensive ones realizes the smallest gain (or the largest loss).
+- **Swap in similar stocks to avoid wash sales.** A loss doesn't count if you buy the same stock within 30 days
+  before or after the sale. Buying a similar stock, for example another company in the same industry, keeps
+  the portfolio's exposure while the loss still counts.
+- **Trade off expected return against tax cost when choosing trades.** A trade the model only mildly prefers may
+  not be worth the tax it triggers. Tax-aware managers put the tax cost of each trade into the optimizer
+  alongside the expected return and trading cost.
+
+### Implementation
+- **Shorting:** prime brokers lend the stocks and finance the positions. Funds must locate a stock to borrow before
+  shorting it, and hard-to-borrow stocks charge high fees.
+- **Portfolio construction:** funds use an optimizer with a risk model, a trading-cost model and limits on
+  turnover, plus "no-trade" bands like the hold-until-rank-60 rule here, rather than simple quintile sorts.
+- **Execution:** trades are split up and spread out by algorithm, often over more than a day, to limit their
+  effect on prices.
+- **Real costs:** Frazzini, Israel and Moskowitz studied AQR's own trades, over a trillion dollars of them. They
+  found real trading costs were far below what spread estimates like the ones on the Compare Models page imply.
+- **Disclosure:** large managers file 13F reports, which show only their long positions, once a quarter.
+"""
+
+
+def practice_page():
+    st.title("Trading the Model in Practice")
+    tab_bg, tab_401k, tab_tlh = st.tabs(["Background", "Trading in Your 401(k)", "Tax-Loss Harvesting"])
+
+    with tab_bg:
+        st.markdown(PRACTICE_BACKGROUND)
+
+    with tab_401k:
+        practice_401k_tab()
+
+    with tab_tlh:
+        tax_loss_harvesting_tab()
+
+
+def practice_401k_tab():
+    st.header("How Each Way of Trading the Model Would Have Done")
+    practice = load_practice()
+    if practice is None:
+        st.error("practice.csv is missing from output_corrected/dashboard (run build_dashboard_bundle.py with the input data).")
+        return
+    models = list(practice['model'].unique())
+    c1, c2 = st.columns(2)
+    default = models.index('MLP-rank-256-128-64') if 'MLP-rank-256-128-64' in models else 0
+    model = c1.selectbox("Model:", models, index=default, key='practice_model')
+    start = c2.radio("Sample starts in:", [2000, 2005, 2010], index=1, horizontal=True, key='practice_start')
+
+    st.markdown("""
+    Inside a 401(k) or IRA, trades aren't taxed, so these are the returns the account itself would earn. Each pair of
+    rows shows one way to trade the model, before and after trading costs.
+    - **Long-short** rows can't be traded in a retirement account, which doesn't allow short selling. They are here
+      for comparison.
+    - **Most liquid 20%** means the 20% of stocks with the highest dollar trading volume each month, about 880 stocks.
+      **Top quintile** holds the best-ranked fifth of those, about 176 stocks. **Top 20** holds just 20 of them.
+    - **Trading costs:** the all-stocks rows pay half of each stock's estimated bid-ask spread (as on the Compare
+      Models page). The rows that trade only liquid stocks pay the half-spread below, and their short legs pay the
+      borrowing fee.
+    - **Sharpe ratio** uses returns above the T-bill rate for long-only rows. A long-short return is already the
+      difference between two returns, so its Sharpe ratio uses the return itself.
+    - **Above market** compares long-only rows with an index fund holding all US stocks.
+    - **Trades per year** counts every buy and sell, including the small trades that bring each holding back to
+      equal weight.
+    """)
+    c1, c2 = st.columns(2)
+    half_spread = c1.number_input("Half-spread for liquid stocks, each way (basis points)", 0.0, 100.0, 5.0, 1.0,
+                                  key='practice_half_spread') / 10000
+    borrow_fee = c2.number_input("Borrowing fee on short legs (% per year)", 0.0, 10.0, 0.25, 0.25,
+                                 key='practice_borrow_fee') / 100
+
+    ff = load_factors()
+    rf = ff['RF'] / 100
+    market = ff['mkt_excess'] / 100 + rf
+    first_month = practice.index.min()
+    rows = {}
+    for approach in practice['approach'].unique():
+        d = practice[(practice['model'] == model) & (practice['approach'] == approach) & (practice.index.year >= start)]
+        long_only = approach.startswith('Long only')
+        if approach == 'Long-short, all stocks':
+            net = d['net_spread_estimate']
+        else:
+            net = d['gross'] - 2 * half_spread * d['turnover'] - (0.0 if long_only else borrow_fee / 12)
+        trades = 12 * d['trades'][d.index != first_month].mean()     # nothing is traded in the first month
+        for label, r in [(approach, d['gross']), (f"{approach}, after costs", net)]:
+            s = return_stats(r, rf if long_only else None)
+            rows[label] = {'Mean (%/yr)': s['Mean (%/yr)'], 'Sharpe ratio': s['Sharpe ratio'],
+                           'Max drawdown (%)': s['Max drawdown (%)'],
+                           'Above market (%/yr)': 1200 * (r - market.reindex(r.index)).mean() if long_only else np.nan,
+                           'Trades/yr': trades}
+    months = d.index
+    s = return_stats(market.reindex(months), rf)
+    rows['Index fund (stock market)'] = {'Mean (%/yr)': s['Mean (%/yr)'], 'Sharpe ratio': s['Sharpe ratio'],
+                                         'Max drawdown (%)': s['Max drawdown (%)'], 'Above market (%/yr)': 0.0}
+    table = pd.DataFrame(rows).T
+    st.dataframe(table.style.format('{:.1f}', na_rep='').format('{:.2f}', subset=['Sharpe ratio'])
+                 .format('{:,.0f}', subset=['Trades/yr'], na_rep=''), height=(len(table) + 1) * 35 + 3)
+    st.caption("The sample ends in December 2019. The hold-until-rank-60 rule was picked once, not tuned, but with "
+               "only 20 stocks, a few lucky picks can move these results a lot.")
+
+
+def tax_loss_harvesting_tab():
+    st.header("Tax-Loss Harvesting: A Small Example")
+    st.markdown(r"""
+    In January you put \$10,000 into each of three stocks. It is now December, eleven months later:
+
+    | Stock | Bought for | Worth now | Gain or loss | The model says |
+    |---|---|---|---|---|
+    | A | \$10,000 | \$14,000 | +\$4,000 | sell |
+    | B | \$10,000 | \$7,000 | -\$3,000 | keep |
+    | C | \$10,000 | \$11,000 | +\$1,000 | sell |
+
+    All three have been held for less than a year, so any gain or loss you realize now is **short-term**: taxed
+    at your ordinary income tax rate. Gains held more than a year are **long-term** and taxed at a lower rate.
+    """)
+    c1, c2 = st.columns(2)
+    st_rate = c1.number_input("Short-term rate (your income tax rate, %)", 0.0, 60.0, 37.0, 1.0, key='tlh_st') / 100
+    lt_rate = c2.number_input("Long-term rate (%)", 0.0, 40.0, 20.0, 1.0, key='tlh_lt') / 100
+
+    plans = {
+        "Plan 1: Follow the model": ("Sell A and C.", 4000 + 1000, 0),
+        "Plan 2: Also harvest B's loss": ("Sell A and C, and sell B and put the $7,000 into a similar stock.", 4000 + 1000 - 3000, 0),
+        "Plan 3: Harvest, and wait a month on C": ("Sell A, harvest B, and sell C in February, after a year.", 4000 - 3000, 1000),
+    }
+    rows = []
+    for name, (what, short_term, long_term) in plans.items():
+        tax = st_rate * max(short_term, 0) + lt_rate * long_term
+        rows.append({"Plan": name, "What you do": what, "Net short-term gain": f"${short_term:,.0f}",
+                     "Long-term gain": f"${long_term:,.0f}", "Tax": f"${tax:,.0f}"})
+    st.table(pd.DataFrame(rows).set_index("Plan"))
+    base = st_rate * 5000
+    st.markdown(rf"""
+    **What happened**
+    - **Plan 2** sells B, realizing its \$3,000 loss, which cancels \$3,000 of the gains on A and C. That saves
+      \${base - st_rate * 2000:,.0f} in tax this year. You keep the same exposure by buying a *similar* stock,
+      for example another company in B's industry.
+    - **Why not just buy B back?** The **wash-sale rule** cancels the loss if you buy the same stock within 30 days
+      before or after the sale. You could buy B again after 31 days, but you'd be out of it for a month.
+    - **Plan 3** also holds C one more month, until it has been held more than a year. Its \$1,000 gain becomes
+      long-term and is taxed at the lower rate, saving another \${st_rate * 1000 - lt_rate * 1000:,.0f}. The cost is
+      holding a stock the model wants to sell for one more month.
+
+    **The fine print**
+    - Harvesting mostly *delays* tax. The replacement stock was bought for \$7,000, so if it later rises back to
+      \$10,000, that \$3,000 gain is taxed when you sell it. The saving is real when that later gain is long-term
+      (taxed at a lower rate), or when the stock is never sold, for example if it is donated or inherited.
+    - If losses exceed gains, up to \$3,000 a year of the extra loss can reduce your other income. The rest
+      carries forward to later years.
+    - None of this matters inside a 401(k) or IRA, where gains and losses aren't taxed. It also adds work: a
+      strategy that trades hundreds of times a year needs careful records of what was bought when, and at what
+      price. Brokers report this on Form 1099-B.
+    """)
 
 import plotly.graph_objs as go
 
@@ -1999,6 +2209,8 @@ def main():
         compare_models_page()
     elif page == "Dig into a Model":
         model_details_page()
+    elif page == "Trading the Model in Practice":
+        practice_page()
 
 if __name__ == "__main__":
     main()

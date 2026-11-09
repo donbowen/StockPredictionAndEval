@@ -126,7 +126,7 @@ buffer year and 2021+ an untouched holdout (never loaded). Tests: `python -m pyt
 python run_nn_screen.py --year 2005      # architecture / target screen (no test data touched)
 python run_nn_backtest.py                # three 5-seed MLP ensembles, 2000-2019, then evaluation (needs PyTorch)
 python run_hgb_backtest.py               # gradient boosting on three targets and OLS on the rank target, then evaluation (about 7.5 hours)
-python build_dashboard_bundle.py --data-dir input_data   # writes output_corrected/dashboard/ for the Streamlit app (input data needed for the trading cost tables)
+python build_dashboard_bundle.py --data-dir input_data   # writes output_corrected/dashboard/ for the Streamlit app (input data needed for the trading cost and trading-in-practice tables)
 ```
 
 The dashboard's model-pipeline and variable-importance tabs load the per-year saved pipelines in
