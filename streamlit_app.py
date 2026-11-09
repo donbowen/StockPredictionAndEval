@@ -228,14 +228,20 @@ def select_model_path(selected_model, key):
     return files[year]
 
 
-# Cache data loading functions
+# Cache data loading functions. Each cache is keyed on the files' modification times, so a running app picks up
+# rebuilt data (build_dashboard_bundle.py) without a restart.
+def _modified(*paths):
+    return tuple(Path(p).stat().st_mtime if Path(p).exists() else None for p in paths)
+
+
 def load_data():
     """Portfolio data (returns, portfolio stats, turnover) of the v2 pipeline."""
-    return _load_data(RESULTS_DIR)
+    files = [f"{RESULTS_DIR}/{f}" for f in ("returns_wide.csv", "port_stats_tall.csv", "turnover.csv")]
+    return _load_data(RESULTS_DIR, _modified(*files))
 
 
 @st.cache_data
-def _load_data(source_dir):
+def _load_data(source_dir, modified):
     """Load portfolio data from CSV files"""
     returns_wide_df = pd.read_csv(f'{source_dir}/returns_wide.csv')
     port_stats_tall_df = pd.read_csv(f'{source_dir}/port_stats_tall.csv')
@@ -254,13 +260,15 @@ def _load_data(source_dir):
     
     return returns_wide_df, port_stats_tall_df, turnover_df
 
-@st.cache_data
-def load_costs(source_dir=RESULTS_DIR):
+def load_costs():
     """Monthly long-short returns before and after trading costs (built by build_dashboard_bundle.py), or None."""
-    p = Path(source_dir) / "costs.csv"
-    if not p.exists():
-        return None
-    return pd.read_csv(p, parse_dates=['date']).set_index('date')
+    p = Path(RESULTS_DIR) / "costs.csv"
+    return _load_costs(str(p), _modified(p)) if p.exists() else None
+
+
+@st.cache_data
+def _load_costs(path, modified):
+    return pd.read_csv(path, parse_dates=['date']).set_index('date')
 
 
 @st.cache_data
