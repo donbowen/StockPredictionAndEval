@@ -1614,6 +1614,9 @@ def practice_401k_tab():
     - **Above market** compares long-only rows with an index fund holding all US stocks.
     - **Trades per year** counts every buy and sell, including the small trades that bring each holding back to
       equal weight.
+    - **The highlighted row is the most realistic implementation for small investors:** 20 liquid stocks, long only,
+      about 400 trades a year, after trading costs. Below the table, a second table tests whether its edge over
+      the market is statistically reliable.
     """)
     c1, c2 = st.columns(2)
     half_spread = c1.number_input("Half-spread for liquid stocks, each way (basis points)", 0.0, 100.0, 5.0, 1.0,
@@ -1625,7 +1628,7 @@ def practice_401k_tab():
     rf = ff['RF'] / 100
     market = ff['mkt_excess'] / 100 + rf
     first_month = practice.index.min()
-    rows = {}
+    rows, nets = {}, {}
     for approach in practice['approach'].unique():
         d = practice[(practice['model'] == model) & (practice['approach'] == approach) & (practice.index.year >= start)]
         long_only = approach.startswith('Long only')
@@ -1633,6 +1636,7 @@ def practice_401k_tab():
             net = d['net_spread_estimate']
         else:
             net = d['gross'] - 2 * half_spread * d['turnover'] - (0.0 if long_only else borrow_fee / 12)
+        nets[approach] = net
         trades = 12 * d['trades'][d.index != first_month].mean()     # nothing is traded in the first month
         for label, r in [(approach, d['gross']), (f"{approach}, after costs", net)]:
             s = return_stats(r, rf if long_only else None)
@@ -1645,10 +1649,51 @@ def practice_401k_tab():
     rows['Index fund (stock market)'] = {'Mean (%/yr)': s['Mean (%/yr)'], 'Sharpe ratio': s['Sharpe ratio'],
                                          'Max drawdown (%)': s['Max drawdown (%)'], 'Above market (%/yr)': 0.0}
     table = pd.DataFrame(rows).T
+    realistic = f"{REALISTIC_APPROACH}, after costs"
+    highlight = lambda row: ['background-color: rgba(255, 196, 0, 0.30); font-weight: bold' if row.name == realistic
+                             else '' for _ in row]
     st.dataframe(table.style.format('{:.1f}', na_rep='').format('{:.2f}', subset=['Sharpe ratio'])
-                 .format('{:,.0f}', subset=['Trades/yr'], na_rep=''), height=(len(table) + 1) * 35 + 3)
+                 .format('{:,.0f}', subset=['Trades/yr'], na_rep='').apply(highlight, axis=1),
+                 height=(len(table) + 1) * 35 + 3)
     st.caption("The sample ends in December 2019. The hold-until-rank-60 rule was picked once, not tuned, but with "
                "only 20 stocks, a few lucky picks can move these results a lot.")
+
+    if REALISTIC_APPROACH in nets:
+        st.subheader("Is the realistic version's edge over the market reliable?")
+        st.markdown(f"""
+        The highlighted row, *{realistic}*, tested against the market. The first two rows test its return minus the
+        market's. The alphas also adjust for risk: if the 20 stocks move more than the market (a beta above 1), part
+        of the edge is just extra market risk. Fama-French alphas also adjust for tilts toward small, cheap,
+        profitable, conservatively investing or recent-winner stocks.
+        - A t-statistic above about 2 means an edge that large would rarely come from luck alone.
+        - Newey-West t-statistics allow returns in nearby months to be related, which ordinary t-statistics assume away.
+        """)
+        tests = edge_tests(nets[REALISTIC_APPROACH], ff)
+        st.dataframe(tests.style.format({'Per year (%)': '{:.1f}', 't-statistic': '{:.2f}', 'Beta': '{:.2f}'}, na_rep=''))
+
+
+REALISTIC_APPROACH = "Long only, top 20, hold until rank > 60"
+
+
+def edge_tests(r, ff):
+    """Return minus market (ordinary and Newey-West t-stats) and CAPM / Fama-French alphas (Newey-West t-stats) of
+    monthly decimal returns r. Factors are in percent per month."""
+    df = ff.reindex(r.index).copy()
+    df['excess'] = 100 * r - df['RF']
+    df['minus_market'] = 100 * r - (df['mkt_excess'] + df['RF'])
+    lags = int(np.floor(4 * (len(df) / 100) ** (2 / 9)))
+    hac = dict(cov_type='HAC', cov_kwds={'maxlags': lags})
+    rows = {}
+    plain = smf.ols('minus_market ~ 1', df).fit()
+    nw = smf.ols('minus_market ~ 1', df).fit(**hac)
+    rows['Return minus market (ordinary t)'] = {'Per year (%)': 12 * plain.params['Intercept'], 't-statistic': plain.tvalues['Intercept']}
+    rows['Return minus market (Newey-West t)'] = {'Per year (%)': 12 * nw.params['Intercept'], 't-statistic': nw.tvalues['Intercept']}
+    for name, formula in [('CAPM alpha', 'mkt_excess'), ('Fama-French 3-factor alpha', 'mkt_excess + SMB + HML'),
+                          ('Fama-French 6-factor alpha', 'mkt_excess + SMB + HML + RMW + CMA + Mom')]:
+        f = smf.ols(f'excess ~ {formula}', df).fit(**hac)
+        rows[name] = {'Per year (%)': 12 * f.params['Intercept'], 't-statistic': f.tvalues['Intercept'],
+                      'Beta': f.params['mkt_excess']}
+    return pd.DataFrame(rows).T
 
 
 def tax_loss_harvesting_tab():
