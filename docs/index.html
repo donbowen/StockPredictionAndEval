@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ML Stock Prediction Evaluation</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📈</text></svg>">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.10.0/styles/github.min.css">
+<link rel="stylesheet" href="style.css">
+<script defer src="https://cdn.plot.ly/plotly-basic-2.35.2.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.10.0/highlight.min.js"></script>
+<script defer src="app.js"></script>
+</head>
+<body>
+<aside id="sidebar">
+  <button id="sidebar-toggle" aria-label="Toggle navigation">☰</button>
+  <div id="sidebar-body">
+    <h2>Pages</h2>
+    <nav id="nav"></nav>
+  </div>
+</aside>
+<main id="main">
+  <div id="page"><p class="loading">Loading…</p></div>
+  <footer>
+    <hr>
+    <p>By Prof. Donald Bowen, Lehigh University (2025). Inspired by several student projects, OpenAssetPricing, and Assaying Anomalies.</p>
+  </footer>
+</main>
+
+<!-- ===================================================================================================
+     Page text. Markdown, with $...$ for math and \$ for a literal dollar sign (as in Streamlit).
+     Copied from streamlit_app.py: edit both when the prose changes.
+     =================================================================================================== -->
+
+<script type="text/markdown" id="md-intro">
+This dashboard provides comprehensive analytics for evaluating and comparing machine learning models created for stock return prediction.
+The models shown here were trained in the python notebook in the associated repo, and this code can be easily adjusted to train other models.
+
+This project is inspired by student projects (listed below) from [Lehigh University's FIN377 course.](https://ledatascifi.github.io/ledatascifi-2025/content/about/hall_of_awesomeness.html)
+
+## Key Features:
+
+**1. Clear and intuitive explanation of the methodology**
+- Understand the data processing necessary
+- Learn about how the machine learning models are trained
+- How are the predictions of the models used to create portfolios?
+- See key code snippets for each step, and the full stack code base
+
+**2. Compare the machine learning models we create**
+- View long-short portfolio performance across multiple models
+- Analyze risk-adjusted returns and factor exposures
+- Compare alphas across different factor models
+- Compare Sharpe ratios, turnover, and performance after trading costs
+
+**3. Detailed model analysis**
+- Examine cumulative returns for individual portfolios
+- How does this model's returns compare to returns for 200+ professional models?
+- View moving average returns to analyze trends
+- Estimate alpha for the portfolio to gauge statistical significance and risk-adjusted performance
+- Analyze portfolio turnover over time
+- Model interpretation: Understand the variables used in the model and their significance
+
+## Navigation:
+
+Use the sidebar to navigate between different pages:
+- **Introduction**: This overview page
+- **Background**: Learn how models are trained, the data used, and how return predictions are turned into portfolios
+- **Compare Models**: Compare performance across multiple models
+- **Model Details**: Deep dive into a specific model
+- **Trading the Model in Practice**: Taxes, account types, a manageable 20-stock version, and how professional funds trade
+
+## Getting Started:
+
+Select a page from the sidebar to begin exploring the data.
+
+## Inspiration
+
+- [Neural Network Dashboard](https://lehigh-asset-pricing.streamlit.app/) by Joseph Carruth, Jay Geneve, Michael Jamesley, and Evan Trock
+- [Lazy Prices Replication](https://lazypricesreplication.streamlit.app/) by Hannah Gordon, Akanksha Gavade, Marti Figueres, and Henry Piotrowski
+- [OpenAssetPricing](https://www.openassetpricing.com) by Andrew Chen and Tom Zimmermann
+- [Assaying Anomalies](https://sites.psu.edu/assayinganomalies/) by Robert Novy-Marx  and Mihail Velikov
+- [FIN377 textbook chapter on Assaying Anomalies](https://ledatascifi.github.io/ledatascifi-2025/content/05/05d_AssetPricingAnomalyTable1.html)
+- [FIN377 textbook chapter on OpenAssetPricing](https://ledatascifi.github.io/ledatascifi-2025/content/05/05e_OpenAP_anomaly_plot.html)
+
+## Going further?
+
+- You can clone the repo and build your own models. You'll need CRSP return data.
+- What about the role of feature engineering? We only use 200 high quality signals from the OpenAssetPricing dataset here. What if we used more signals?
+    - ["Machine Learning from a "Universe" of Signals: The Role of Feature Engineering" (2025, Journal of Financial Economics)](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5248179) by Li, Rossi, (Lehigh's own) Sterlin Yan, and Zheng, compare the performance of (A) a ML model based on 18,000 possible accounting variables to (B) a ML model using the smaller set of 200 predictive signals used in this dashboard (which are curated from finance research by Chen and Zimmerman's OpenAssetPricing). They find that using the SMALLER but selected set of signals performs better! Students can replicate this exercise by obtaining accounting data from WRDS, creating the features, and then running code within this project with the input signal data replaced.
+- Is implementing this realistic? Is the performance here likely to be replicated in the future? And what about trading costs?
+    - The predictive signals used here are curated from finance research but might be overfit to the past and underperform going forward. This dashboard only tests the models performance through Dec 31, 2019 (2020 is left unused and 2021 onward was never loaded, so it is a clean holdout). Students can try these models on data from 2021 onward to see if the performance is replicated.
+    - ["The Expected Returns on Machine-Learning Strategies" (2024, WP)](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4702406) by Azevedo, Hoegner, and Velikov perform a similar analysis to this dashboard, and goes further to then compute how these portfolios would perform after factoring in trading costs, pre-publication overfitting, and post-decimalization era of high liquidity. They find that these factors erode 57% of the performance of the machine learning models. Still, they find ML strategies are portfitable and have an expected gross Sharpe Ratio of 0.94, which drops to 0.84, net of expenses. For comparison, the historical average Sharpe Ratio of the S&P 500 is about 0.43.
+    The "Additional Metrics" tab on the Compare Models page shows a simple version for the models here: performance after paying the bid-ask spread, and when trading only the most liquid stocks.
+</script>
+
+<script type="text/markdown" id="md-intro-success">
+**How the results are built:** predictor factors are lagged one month, missing values are filled with same-month cross-sectional means, all preprocessing and tuning use only earlier years, and tied predictions are split evenly across portfolios. Caveats: equal-weighted quintiles, no delisting returns, results are before transaction costs except where noted, and the strong results lean on small, illiquid stocks (see the cost tables in Compare Models).
+</script>
+
+<script type="text/markdown" id="md-regression-notes">
+### Notes:
+- Regression models:
+    - $r^e$ is the raw excess return
+    - CAPM is the Capital Asset Pricing, which means that we estimate a regression of the excess return of the portfolio on the market excess return:
+        - $ret_{i,t}-r_f = \alpha + \beta_{i} \cdot mkt\_excess_t + \epsilon_{i,t}$
+        - where $mkt\_excess_t$ is the market excess return (Mkt-RF)
+        - and $\alpha$ is the intercept and is interpreted as the excess return of the portfolio beyond its exposure to the market
+        - and $\beta_i$ is covariance with the market portfolio
+    - FF# are the Fama-French #-factor models and we estimate alpha for each similarly, but with more factors in the regression:
+        - FF3: Market, SMB (Small Minus Big), HML (High Minus Low)
+        - FF4: FF3 + Mom (Momentum)
+        - FF5: FF3 + RMW (Robust Minus Weak) + CMA (Conservative Minus Aggressive)
+        - FF6: FF5 + Mom
+</script>
+
+<script type="text/markdown" id="md-compare-cum">
+This chart compares the cumulative returns of Long-Short portfolios across the selected models.
+The Long-Short strategy involves buying the highest-ranked stocks (Portfolio 5) and shorting
+the lowest-ranked stocks (Portfolio 1) for each model. If a model has a high t-stat, then the prediction model
+is doing a good job of sorting stocks to buy and short compared to the factors in the regression model.
+</script>
+
+<script type="text/markdown" id="md-compare-factor">
+This table compares the alpha (excess returns) of Long-Short portfolios across different factor models.
+
+- The numbers are percent per month. Multiply by 12 to annualize.
+- Higher and statistically significant alphas indicate better model performance that cannot be explained by the risk factors in the given model.
+- The t-statistic indicates the statistical significance of the alpha, and those above the 5% significance level are bolded.
+</script>
+
+<script type="text/markdown" id="md-metrics-gross">
+Long-short portfolios of all stocks, before trading costs. The sample ends in December 2019.
+- **Turnover** is the share of each leg traded in a month, one way. 100% means the whole leg was replaced.
+  Each month's trades start from last month's weights after they drifted with returns, so even a stock that
+  stays in the portfolio is traded a little to bring it back to equal weight.
+- **Short in illiquid** is the share of the short leg in the 20% of stocks with the lowest dollar
+  trading volume that month. These are the stocks that are hardest and most expensive to short.
+</script>
+
+<script type="text/markdown" id="md-metrics-net">
+The same portfolios, now paying half the bid-ask spread on every dollar traded, in both legs.
+- The spread for each stock is Open Asset Pricing's estimate from daily high and low prices (Corwin and
+  Schultz, 2012), measured before the month starts. Estimates like this tend to overstate the spreads of
+  liquid stocks, especially after 2005, so these costs are likely too high for those stocks.
+- **This estimate omits other costs**: price impact from trading large amounts, fees for borrowing the stocks
+  that are shorted, and allowance for stocks that can't be borrowed at all.
+</script>
+
+<script type="text/markdown" id="md-metrics-liquid">
+One simple way to cut costs: use only the most liquid 20% of stocks each month (about 880 stocks), ranked
+by dollar trading volume. The model's predictions are sorted into quintiles within that group, so the short
+leg has no illiquid stocks.
+
+The high-low estimate above is a poor guide to what trading these stocks costs. It charges them about
+25-30 bp each way after 2005, but estimates like it run 25-50 bp too high after 2003 compared with spreads
+measured from intraday quotes (Chen and Velikov, 2023). The actual cost of trading large, heavily traded
+stocks is a few basis points. So this table charges an assumed half-spread on every trade, plus a fee for
+borrowing the stocks in the short leg. Change the assumptions to see how the results respond.
+</script>
+
+<script type="text/markdown" id="md-metrics-long">
+Many investors can't short at all. This table holds only the long leg: the top quintile of the most liquid
+20% of stocks, paying the half-spread above. It is compared with the stock market (all US stocks,
+value-weighted). The Sharpe ratio here uses returns above the T-bill rate.
+</script>
+
+<script type="text/markdown" id="md-models-intro">
+Every model below uses the same data and timeline. It is retrained each year from 2000 to 2019 on all earlier
+years, using the same predictors and preprocessing, and its predictions are sorted into the same 5 portfolios.
+The models differ in what they try to predict and how flexible they are.
+
+These are all of the models that the site can show. Use the box at the top of this page to choose the ones to compare.
+</script>
+
+<script type="text/markdown" id="md-models-designs">
+**Choosing the designs**
+- The penalties in RidgeCV and LassoCV, and the number of training rounds in the neural nets and HGB models, are chosen each year using only the last three years of the training window.
+- The HGB settings (other than the number of trees) were fixed before seeing any results.
+- The neural net designs were chosen by comparing several designs on rank correlation, validating on 2002-2004. That overlaps the first test years, so 2005 onward is the cleaner test of those designs.
+</script>
+
+<script type="text/markdown" id="md-estimators">
+OLS Linear Regression:
+- Ordinary Least Squares (OLS) regression is a statistical method used to estimate the relationships between variables.
+- It is the O.G. and the most basic linear model.
+- It assumes a linear relationship and is easy to interpret.
+- However, it may not capture complex relationships in the data.
+- It is sensitive to outliers, multicollinearity, and may not perform well with high-dimensional data.
+- It is also prone to overfitting if the number of features is large compared to the number of observations.
+- Yet, it is a good starting point for understanding the data and establishing a baseline.
+- And it is _good enough_ for many applications, even when FANCY PANTS models are available.
+
+Ridge Regression:
+- Ridge regression is a type of linear regression that includes a regularization term to prevent overfitting.
+- This term penalizes large coefficients, which causes the OLS coefficients to shrink towards zero.
+- This stabilizes the predictions it makes when it sees new data and improves generalization to unseen data.
+- It is particularly useful when dealing with multicollinearity or when the number of features gets large.
+
+Lasso Regression:
+- Lasso regression is another type of linear regression that includes a regularization term.
+- Unlike ridge regression, lasso will shrink some coefficients to zero, effectively performing variable selection.
+- This means that it can help identify the most important features in the data.
+- For the purpose of prediction, Lasso and Ridge are often similar, as the underlying idea is the same: OLS, but with smaller coefficients.
+
+RidgeCV and LassoCV:
+- The penalty strength (alpha) is chosen using only the past: the training window's last three years are held out in turn, each time training on the years before it.
+- Plain Ridge and Lasso with the default penalty (alpha = 1) are included as baselines.
+
+MLP (Multi-Layer Perceptron) aka Neural Network:
+- Two of the MLPs here predict each stock's rank of next-month return within its month, and one predicts a clipped return using a Huber loss. Each averages five randomly initialised networks.
+- MLP is a type of neural network that consists of multiple layers of interconnected nodes (neurons).
+- A punchy one-liner is that it is a "black box" model that can learn complex relationships in the data.
+- NNs are powerful and flexible, but they require careful tuning of hyperparameters and can be prone to overfitting.
+- Some projects have found them to work well in finance, for example, [Gu, Kelly & Xiu (RFS 2020)](https://academic.oup.com/rfs/article/33/5/2223/5758276/) and [OpenAssetPricing](https://github.com/mk0417/open-asset-pricing-download/blob/master/examples/ML_portfolio_example.ipynb).
+
+Histogram Gradient Boosting (HGB):
+- HGB builds hundreds of small decision trees in sequence, and each new tree tries to fix the errors of the trees before it.
+- Trees pick up non-linear patterns and interactions between variables on their own, and they don't care about the scale of a variable.
+- "Histogram" means that it groups each variable's values into buckets before looking for splits, which makes it fast enough for millions of rows.
+- The main risk is overfitting: more trees always fit the training data better. Here, the number of trees is chosen using the last three years of the training window.
+</script>
+
+<script type="text/markdown" id="md-target">
+- A model doesn't have to predict the return itself. Since we only use predictions to sort stocks, we can instead predict each stock's rank within its month, or which quintile it lands in.
+- Those targets ignore how extreme an outlier is. A stock that rises 2,000% counts the same as the month's other top performers.
+- The "Predicts (Target)" column of the table above shows which target each model uses.
+</script>
+
+<script type="text/markdown" id="md-details-cum">
+This chart shows how \$1 invested at the beginning of the period would have grown over time
+for each portfolio formed using the selected model. The Long-Short portfolio represents the
+returns of buying the highest-ranked stocks (Portfolio 5) and shorting the lowest-ranked stocks (Portfolio 1).
+</script>
+
+<script type="text/markdown" id="md-details-zoo">
+This chart shows how \$1 invested at the beginning of the period would have grown over time
+using the long-short portfolio for the selected model, compared to returns from the many anomaly
+portfolios proposed in the finance literature.
+
+Details about the zoo portfolios can be found [here](https://drive.google.com/file/d/1Sev9s6cPFUGgxp1pFiej0lGzpsMqJCI2/view), and you
+can filter the graph below to show only the zoo portfolios you are interested in.
+</script>
+
+<script type="text/markdown" id="md-details-ma">
+To visualize the trend in returns over time, this chart shows the smoothed monthly returns
+for each portfolio formed using the selected model.
+To smooth monthly variation in the data, we show a moving average.
+The are raw returns, not excess returns. Click over to the regression tab to see excess returns
+and other risk adjustments.
+</script>
+
+<script type="text/markdown" id="md-details-reg">
+This table shows the results of regressing portfolio returns on various factor models.
+The alpha represents the abnormal return that cannot be explained by the factors.
+The t-statistic indicates the statistical significance of the alpha, and those above
+the 5% significance level are bolded.
+
+- You should first look at the alpha on the Long-Short portfolio. If this has a high t-stat,
+then the model is doing a good job of sorting stocks to buy and short.
+- We call this "Table 1" because the first table in an asset pricing paper often
+shows this kind of analysis.
+- Bin1 is the lowest ranked stocks from the prediction model, and Bin5 is the highest ranked stocks.
+- The numbers are percent per month. Multiply by 12 to annualize.
+- Higher and statistically significant alphas indicate better model performance that cannot be explained by the risk factors in the given model.
+- The t-statistic indicates the statistical significance of the alpha, and those above the 5% significance level are bolded.
+</script>
+
+<script type="text/markdown" id="md-practice-bg">
+*This page is about how the strategies on this site could be traded. It describes general US federal tax rules
+for teaching purposes. It is not tax or investment advice.*
+
+### TL;DR for an individual investor
+- **These strategies trade a lot.** Most holdings are replaced within a month or two, so nearly every gain is
+  short-term and, in a regular (taxable) brokerage account, is taxed like wages: up to 37%, plus 3.8% investment
+  income tax for high earners.
+- **In a taxable account, that tax erases the edge.** In a rough simulation for 2005-2019, the 20-stock version
+  of the MLP-rank model grew about 14.5% a year before tax, but about 8.7% after tax at top-bracket rates. That is
+  no better than simply holding an index fund (also about 8.7%, since an index fund rarely sells and is taxed
+  mostly on its dividends). For a middle-bracket investor, about 11% a year was left, versus about 9% for the index fund.
+- **Use a tax-advantaged account instead.** Inside a Roth IRA, a traditional IRA, or a 401(k), trades aren't
+  taxed. A Roth is the best fit: gains are never taxed. Most 401(k) plans only offer a menu of funds, so you
+  would need a plan with a self-directed brokerage window.
+- **These accounts are long-only.** IRAs and 401(k) brokerage windows don't allow borrowing or short selling, so
+  only the long-only versions on the next tab can be traded there.
+- **Keep it manageable.** Holding the top 20 stocks among the most liquid 20% is about 400 trades a year, versus
+  more than 3,000 for the full top quintile. A simple rule, holding a stock until its rank falls below 60
+  instead of selling as soon as it leaves the top 20, cut trading further and did as well or better in this backtest.
+- **A business entity doesn't help.** A single-member LLC is ignored for income taxes, and a partnership passes
+  the same short-term gains through to its owners. "Trader tax status" requires near-daily trading, and even
+  then gains are taxed as ordinary income.
+
+### TL;DR for trading firms
+- **Structure comes first.** Most US hedge funds are partnerships, so gains pass through to investors with their
+  short- or long-term character. Much of their money comes from tax-exempt investors (pensions, endowments) or
+  from abroad, through offshore funds set up to shield those investors from US tax. Many quantitative long-short
+  funds simply don't trade with taxes in mind.
+- **Tax-aware long-short funds exist for taxable investors.** Managers such as AQR publish research on these
+  strategies. They often aim to produce net capital losses that offset the investor's gains elsewhere.
+- **Derivatives have their own rules.** Hedging with stock-index futures is taxed at a blend of 60% long-term and
+  40% short-term rates, whatever the holding period. Rules on wash sales, straddles and constructive sales block
+  the obvious workarounds. In the best-known abuse case, Renaissance Technologies used bank "basket options" to
+  turn short-term gains into long-term ones. A US Senate report criticized this in 2014, and the firm's principals
+  reportedly agreed in 2021 to pay the IRS up to about \$7 billion.
+- **Implementation is industrial.** Funds borrow stocks through prime brokers, build portfolios with optimizers
+  that weigh expected return against risk and trading costs, and execute with algorithms over hours or days.
+
+---
+
+### Tax reduction tools
+- **Harvest losses, on both the long and short sides, and hold winners past a year.** Selling a loser realizes a
+  loss that offsets gains. Waiting until a winner has been held more than a year turns a short-term gain into a
+  long-term one, taxed at a lower rate. The "Tax-Loss Harvesting" tab walks through an example.
+- **Sell the highest-cost shares first.** When you sell part of a position bought at different prices, you can
+  choose which shares you sell. Selling the most expensive ones realizes the smallest gain (or the largest loss).
+- **Swap in similar stocks to avoid wash sales.** A loss doesn't count if you buy the same stock within 30 days
+  before or after the sale. Buying a similar stock, for example another company in the same industry, keeps
+  the portfolio's exposure while the loss still counts.
+- **Trade off expected return against tax cost when choosing trades.** A trade the model only mildly prefers may
+  not be worth the tax it triggers. Tax-aware managers put the tax cost of each trade into the optimizer
+  alongside the expected return and trading cost.
+
+### Implementation
+- **Shorting:** prime brokers lend the stocks and finance the positions. Funds must locate a stock to borrow before
+  shorting it, and hard-to-borrow stocks charge high fees.
+- **Portfolio construction:** funds use an optimizer with a risk model, a trading-cost model and limits on
+  turnover, plus "no-trade" bands like the hold-until-rank-60 rule here, rather than simple quintile sorts.
+- **Execution:** trades are split up and spread out by algorithm, often over more than a day, to limit their
+  effect on prices.
+- **Real costs:** Frazzini, Israel and Moskowitz studied AQR's own trades, over a trillion dollars of them. They
+  found real trading costs were far below what spread estimates like the ones on the Compare Models page imply.
+- **Disclosure:** large managers file 13F reports, which show only their long positions, once a quarter.
+</script>
+
+<script type="text/markdown" id="md-practice-401k">
+Inside a 401(k) or IRA, trades aren't taxed, so these are the returns the account itself would earn. Each pair of
+rows shows one way to trade the model, before and after trading costs.
+- **Long-short** rows can't be traded in a retirement account, which doesn't allow short selling. They are here
+  for comparison.
+- **Most liquid 20%** means the 20% of stocks with the highest dollar trading volume each month, about 880 stocks.
+  **Top quintile** holds the best-ranked fifth of those, about 176 stocks. **Top 20** holds just 20 of them.
+- **Trading costs:** the all-stocks rows pay half of each stock's estimated bid-ask spread (as on the Compare
+  Models page). The rows that trade only liquid stocks pay the half-spread below, and their short legs pay the
+  borrowing fee.
+- **Sharpe ratio** uses returns above the T-bill rate for long-only rows. A long-short return is already the
+  difference between two returns, so its Sharpe ratio uses the return itself.
+- **Above market** compares long-only rows with an index fund holding all US stocks.
+- **Trades per year** counts every buy and sell, including the small trades that bring each holding back to
+  equal weight.
+- **The highlighted row is the most realistic implementation for small investors:** 20 liquid stocks, long only,
+  about 400 trades a year, after trading costs. Below the table, a second table tests whether its edge over
+  the market is statistically reliable.
+</script>
+
+<script type="text/markdown" id="md-practice-edge">
+The highlighted row, *{realistic}*, tested against the market. The first two rows test its return minus the
+market's. The alphas also adjust for risk: if the 20 stocks move more than the market (a beta above 1), part
+of the edge is just extra market risk. Fama-French alphas also adjust for tilts toward small, cheap,
+profitable, conservatively investing or recent-winner stocks.
+- A t-statistic above about 2 means an edge that large would rarely come from luck alone.
+- Newey-West t-statistics allow returns in nearby months to be related, which ordinary t-statistics assume away.
+</script>
+
+<script type="text/markdown" id="md-tlh-intro">
+In January you put \$10,000 into each of three stocks. It is now December, eleven months later:
+
+| Stock | Bought for | Worth now | Gain or loss | The model says |
+|---|---|---|---|---|
+| A | \$10,000 | \$14,000 | +\$4,000 | sell |
+| B | \$10,000 | \$7,000 | -\$3,000 | keep |
+| C | \$10,000 | \$11,000 | +\$1,000 | sell |
+
+All three have been held for less than a year, so any gain or loss you realize now is **short-term**: taxed
+at your ordinary income tax rate. Gains held more than a year are **long-term** and taxed at a lower rate.
+</script>
+
+<script type="text/markdown" id="md-tlh-after">
+**What happened**
+- **Plan 2** sells B, realizing its \$3,000 loss, which cancels \$3,000 of the gains on A and C. That saves
+  \${save2} in tax this year. You keep the same exposure by buying a *similar* stock,
+  for example another company in B's industry.
+- **Why not just buy B back?** The **wash-sale rule** cancels the loss if you buy the same stock within 30 days
+  before or after the sale. You could buy B again after 31 days, but you'd be out of it for a month.
+- **Plan 3** also holds C one more month, until it has been held more than a year. Its \$1,000 gain becomes
+  long-term and is taxed at the lower rate, saving another \${save3}. The cost is
+  holding a stock the model wants to sell for one more month.
+
+**The fine print**
+- Harvesting mostly *delays* tax. The replacement stock was bought for \$7,000, so if it later rises back to
+  \$10,000, that \$3,000 gain is taxed when you sell it. The saving is real when that later gain is long-term
+  (taxed at a lower rate), or when the stock is never sold, for example if it is donated or inherited.
+- If losses exceed gains, up to \$3,000 a year of the extra loss can reduce your other income. The rest
+  carries forward to later years.
+- None of this matters inside a 401(k) or IRA, where gains and losses aren't taxed. It also adds work: a
+  strategy that trades hundreds of times a year needs careful records of what was bought when, and at what
+  price. Brokers report this on Form 1099-B.
+</script>
+
+<script type="text/markdown" id="md-bg-overview">
+This page provides an walkthrough of the steps of behind training and evaluating stock return prediction models.
+
+Rather than evaluating how a model performs by looking at a summary stat from the model (like R-squared, MAE, etc.), we
+evaluate how a model performs by looking at the returns you can achieve by trading on its predictions.
+
+In the other tabs on this page, we walk through the two main data sources--stock returns and predictive signals--and how to combine them,
+along with the steps to train models over time to get an accurate view of how the models would perform in practice.
+
+The basic ideas are:
+1. For firm $i$ in month $t$, we have a return $r_{i,t}$ and a set of "signals" $s_{i,t-1}$ measured in the previous month.
+2. We can use these signals to predict the return in the current month, $r_{i,t}$. We will consider any functional model
+   $r_{i,t}=f(s_{i,t-1})$ that takes the signals as input and outputs a prediction of the return.
+   - Before estimating the model, we can modify the signals to improve the model's performance, for example, by taking the
+     log of a signal or scaling it. There are many things to try: cleaning data, feature creation/engineering, feature selection.
+   - Estimators for the function include: OLS, Ridge, Lasso, Gradient Boosting, Neural Networks, etc. This dashboard tries many of them.
+3. Given the predicted returns in a given month, we sort the firms into portfolios (e.g., Low, Middle, High) based on the predicted returns,
+   and we determine the returns of each portfolio.
+4. We compute the "long-short" portfolio returns that month, which is simply the return of the High portfolio minus the return of the Low portfolio.
+   - In practice, this portfolio is what you would get if, at the beginning of the month, you: (1) Buy (or go "long") an equal amount of all the stocks in your High portfolio,
+   and (2) short an equal amount of all the stocks in your Low portfolio.
+   - This portfolio is a bet that the High portfolio will outperform the Low portfolio.
+   - This portfolio is zero-cost, meaning that you do not need to put up any capital to invest in it, because shorting all the stocks
+   in the Low portfolio generates enough cash to buy the stocks in the High portfolio.
+5. We repeat this over time, month by month, to get a time series of returns for the long-short portfolio.
+6. We then evaluate the performance of the long-short portfolio, for example, by looking at its excess returns, alphas,
+Sharpe ratios, and other measures.
+</script>
+
+<script type="text/markdown" id="md-bg-returns">
+The first step is to  obtain stock returns from CRSP (Center for Research in Security Prices),
+which posts its data on WRDS (Wharton Research Data Services).
+
+The data, in part, might look like the below, where each row contains data about a firm-month:
+- **Firm ID**: Unique identifier for the company (called "permno" in CRSP)
+- **Month**: The specific month of the return
+- **Return**: Return for the stock price for that month, including dividends but not delisting returns
+</script>
+
+<script type="text/markdown" id="md-bg-signals">
+The second step is to obtain stock "signals", which are potential predictors of future returns.
+
+Pre-computed signals are available from [OpenAssetPricing](https://www.openassetpricing.com).
+You can make your own signals as well, which can be very valuable, but this is outside the scope of this demo.
+
+Signals are features about the firm or economy measured during a given month:
+- **Important Note**: Signals can only be used to predict future returns, not the same month the signal is measured
+- Each signal represents a different potential predictor of stock performance
+</script>
+
+<script type="text/markdown" id="md-bg-combined">
+In this view, we've shifted signals forward by one month. Each row now contains:
+1. Returns for a specific month
+2. Signals measured in the *previous* month
+
+This setup allows us to predict next month's returns using current month's signals.
+
+The code to get to this combination of the data sources with the lagged signals is _like_:
+```python
+lag_signals = signals.copy()
+lag_signals["yyyymm"] = lag_signals.groupby("firm_id")["yyyymm"].shift(-1) # groupby is important
+rets_with_signals = returns.merge(lag_signals, on=["firm_id", "yyyymm"], how='left')
+```
+</script>
+
+<script type="text/markdown" id="md-bg-timeline">
+Walk-forward validation mimics real-world forecasting:
+1. Train a model using only data *up to* the current point, say May 31, 2010 (the green rows below).
+1. Predict returns for the next month, June 2010, which is the red row below. Remember, the signals
+in the June 2010 row were measured in May 2010 because
+we shifted the signals forward/down one row. So on May 31, 2010, we know the values in the signal
+columns for the red row. We put those red values into our model and this is our
+prediction for the return for the stock during and through June 2010.
+2. We store the predicted returns for later use.
+3. Now, slide the training window forward month by month (either use expanding or rolling windows),
+and repeat the steps above.
+
+So, as you move the slider below, **notice that the rows our model will use to predict the next
+month are highlighted in green, and the rows we are predicting is highlighted in red.**
+</script>
+
+<script type="text/markdown" id="md-bg-timeline-code">
+**The code for this is like** (this is highly simplified):
+
+```python
+# which rows are we using up to this point to train?
+training_rows = df_signals[df_signals['yyyymm'].isin(train_months)]
+prediction_rows = df_signals[df_signals['yyyymm'] == pred_month]
+
+# train the model on the training data and then predict the next month
+model.fit(df_signals[training_rows], df_returns[training_rows])
+predictions = model.predict(df_signals[prediction_rows])
+
+# now we store the predictions for later use...
+```
+</script>
+
+<script type="text/markdown" id="md-bg-portfolio">
+After the last step, we have a dataset with return predictions for the next month as though we had done them in real time.
+
+We will now use these predictions to construct portfolios where we rank stocks into bins based on how high we think their returns will be next month.
+It is most common to sort stocks into 5 or 10 bins, but you can use any number of bins you like. In this example, we will sort into 2 portfolios.
+
+Next, we:
+1. Sort stocks by predicted return each month. In the example, we sort into 2 portfolios. The output of this is to the right.
+
+```python
+def port_sort(x, nport):
+    return np.ceil(x.rank(method="first") * nport / len(x)).astype(int)
+
+predictions['portfolio_assignment'] = predictions.groupby('yyyymm')['prediction'].transform(lambda x: port_sort(x, 2))
+```
+
+**What about ties?** `method="first"` breaks ties by row order, which keeps this example simple but is arbitrary.
+Real models do produce ties: a Lasso can set every coefficient to zero and give all stocks the same prediction.
+The results on this site split tied stocks evenly across the portfolios they span, and the
+Full Code Example shows how.
+
+2. Then we compute the monthly portfolio returns. You can see an example of this to the right. Notice that we also compute the
+long minus short portfolio, which is the difference between the returns of the highest and lowest ranked portfolios.
+
+```python
+portfolios = (predictions
+              .groupby(['yyyymm', 'portfolio_assignment'])
+              ['ret'].mean())
+
+# reshape to wide, and compute the long minus short portfolio
+ports_wide = portfolios.unstack(level=-1)
+ports_wide.columns = [f"Port{col}" for col in ports_wide.columns]
+ports_wide['LongShort'] = ports_wide['Port2'] - ports_wide['Port1']
+```
+
+3. Finally, we can subject those returns (focusing on the long-short portfolio) to any kind of analysis we might want to apply to asset returns.
+The "Compare Models" and "Dig into a Model" pages do this.
+
+- Calculate statistics: Sharpe ratios, drawdowns, turnover, etc.
+- Plot cumulative returns, rolling returns, etc.
+- Compute alphas and factor loadings using regression analysis
+</script>
+
+<script type="text/markdown" id="md-bg-notebook">
+Below is the full, self-contained Jupyter Notebook (available in the repo). It takes the ideas in this
+background section and implements them on real data. It is written to be read and changed. The results on the
+other pages come from the `stockpred` package in the repo, which follows the same steps.
+Features that make working with such large data easier:
+- A `DEV` switch that shrinks the data so you can modify and explore quickly
+- Several models in one loop: OLS, Ridge, Lasso, their tuned versions (RidgeCV, LassoCV), and a neural net
+- Every fit is saved as soon as it finishes, and finished fits are not retrained
+- Careful data handling: same-month cross-sectional imputation, winsorizing and scaling that only learn from
+  the training years, tuning that only validates on later years, and checks of the one-month timing
+- Portfolios with a fair treatment of ties, and HAC (Newey-West) t-statistics
+
+**The notebook also shows you how to design and train models to produce your own
+predictive signals: add one line to `model_dict`.**
+
+A full run takes hours and about 30 GB of RAM. With `DEV = True` it runs in a few minutes. For more details, read the [README.md file in the repo](https://github.com/donbowen/StockPredictionAndEval).
+
+---
+</script>
+</body>
+</html>

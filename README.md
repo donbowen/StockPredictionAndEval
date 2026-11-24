@@ -147,6 +147,21 @@ The dashboard allows you to:
 - View portfolio returns, factor exposures, and other statistics
 - Analyze the performance across different time periods
 
+### Static version for GitHub Pages
+
+`docs/` holds a static copy of the dashboard that needs no Python server, so it opens instantly and never
+goes to sleep. `build_static_site.py` runs the app's own calculations once (factor regressions, saved
+pipelines, feature importances) and writes the results to `docs/data/`; the page itself
+(`docs/index.html`, `docs/app.js`) recomputes anything that depends on a widget in the browser.
+
+```bash
+python build_static_site.py       # after build_dashboard_bundle.py, then commit docs/
+python -m http.server --directory docs   # preview at http://localhost:8000
+```
+
+To publish: in the repo's Settings > Pages, choose "Deploy from a branch", pick the branch, and the `/docs`
+folder. The page text is copied into `docs/index.html`, so prose edits in `streamlit_app.py` need copying there.
+
 ## Methodology
 
 1. **Data Preparation**:
